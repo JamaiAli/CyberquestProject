@@ -9,6 +9,7 @@ import CharacterSelect from './components/CharacterSelect';
 import IntroScreen from './components/IntroScreen';
 import GameOver from './components/GameOver';
 import Victory from './components/Victory';
+import { GHOST_SPAWN, NETWORK_MAP, MACHINE_POSITIONS, TILE, MAP_ROWS, MAP_COLS } from './map.js';
 
 const TOTAL_SECONDS = 360; // 6 minutes
 
@@ -43,9 +44,81 @@ export default function App() {
   const [timeLeft, setTimeLeft]   = useState(TOTAL_SECONDS);
   const [elapsed, setElapsed]     = useState(0);
 
-  const timerRef      = useRef(null);
-  const writeToTermRef = useRef(null); // set by Terminal via onWriteRef
-  const timerWarnSent = useRef({ at120: false, at60: false });
+  const timerRef        = useRef(null);
+  const writeToTermRef  = useRef(null); // set by Terminal via onWriteRef
+  const timerWarnSent   = useRef({ at120: false, at60: false });
+  const ghostTileRef    = useRef({ ...GHOST_SPAWN });
+  const nearbyMachineRef = useRef(null);
+  const oracleSentRef   = useRef(new Set());
+  const gameStateRef    = useRef(gameState);
+
+  // Keep ref in sync so keydown handler always reads latest state
+  useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
+
+  // Reset GHOST position and oracle memory when entering game screen
+  useEffect(() => {
+    if (screen === 'game') {
+      ghostTileRef.current    = { ...GHOST_SPAWN };
+      nearbyMachineRef.current = null;
+      oracleSentRef.current.clear();
+    }
+  }, [screen]);
+
+  // Arrow-key GHOST movement (only during game)
+  useEffect(() => {
+    if (screen !== 'game') return;
+    const ARROWS = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
+
+    const handler = (e) => {
+      if (!ARROWS.includes(e.key)) return;
+      e.preventDefault();
+
+      const { col, row } = ghostTileRef.current;
+      const dRow = e.key === 'ArrowUp' ? -1 : e.key === 'ArrowDown' ? 1 : 0;
+      const dCol = e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowRight' ? 1 : 0;
+      const nRow = row + dRow;
+      const nCol = col + dCol;
+
+      if (nRow < 0 || nRow >= MAP_ROWS || nCol < 0 || nCol >= MAP_COLS) return;
+      const tile = NETWORK_MAP[nRow]?.[nCol];
+      if (tile === TILE.WALL || tile === TILE.MACHINE) return;
+
+      ghostTileRef.current = { col: nCol, row: nRow };
+
+      // Proximity detection — closest machine within 1 tile (Manhattan)
+      let closestId = null;
+      let closestDist = Infinity;
+      Object.entries(MACHINE_POSITIONS).forEach(([id, pos]) => {
+        const clampedCol = Math.max(pos.col, Math.min(nCol, pos.col + pos.w - 1));
+        const clampedRow = Math.max(pos.row, Math.min(nRow, pos.row + pos.h - 1));
+        const dist = Math.abs(nCol - clampedCol) + Math.abs(nRow - clampedRow);
+        if (dist <= 1 && dist < closestDist) { closestDist = dist; closestId = id; }
+      });
+
+      const prevNearby = nearbyMachineRef.current;
+      nearbyMachineRef.current = closestId;
+
+      // ORACLE message on first approach to each unlocked machine
+      if (closestId && closestId !== 'kali' && closestId !== prevNearby && !oracleSentRef.current.has(closestId)) {
+        const pos = MACHINE_POSITIONS[closestId];
+        const unlocked = gameStateRef.current.unlockedMachines || [];
+        if (unlocked.includes(closestId)) {
+          oracleSentRef.current.add(closestId);
+          writeToTermRef.current?.(
+            `\x1b[33m[ORACLE] ${pos.name} détectée. Tape : cd ${pos.ip}\x1b[0m`
+          );
+        } else if (!oracleSentRef.current.has(closestId + '_locked')) {
+          oracleSentRef.current.add(closestId + '_locked');
+          writeToTermRef.current?.(
+            `\x1b[35mORACLE > Cette machine est verrouillée. Compromets d'abord ses prérequis.\x1b[0m`
+          );
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [screen]);
 
   const mode    = gameState.mode    || 'NETWORK';
   const machine = gameState.currentMachine;
@@ -215,7 +288,14 @@ export default function App() {
       </div>
 
       {/* Row 2 Left: Room Map */}
-      <GameMap gameState={gameState} effect={mapEffect} hackerName={player?.hackerName} playerEmoji={player?.emoji} />
+      <GameMap
+        gameState={gameState}
+        effect={mapEffect}
+        hackerName={player?.hackerName}
+        playerEmoji={player?.emoji}
+        ghostTileRef={ghostTileRef}
+        nearbyMachineRef={nearbyMachineRef}
+      />
 
       {/* Row 2 Right: MachineView + PedaPanel */}
       <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>

@@ -64,6 +64,13 @@ export default function Terminal({ onCommand, gameState, onWriteRef }) {
     const fitAddon = new FitAddon();
     term.loadAddon(fitAddon);
     term.open(containerRef.current);
+
+    // Let arrow keys bubble to window so GHOST movement works
+    term.attachCustomKeyEventHandler((e) => {
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) return false;
+      return true;
+    });
+
     const doFit = () => { try { fitAddon.fit(); } catch (_) {} };
     doFit();
     const ro = new ResizeObserver(doFit);
