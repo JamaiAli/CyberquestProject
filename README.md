@@ -137,6 +137,7 @@ Pour cette version Standalone, la pile technologique est exclusivement frontale 
 - **BouazzaZayd** — Moteur de base & logique de scénarisation
 - **isselmou** — Graphismes de la carte interactive & Terminal
 - **JamaiAli** — Conception UX/UI globale & Intégration
+- **Aziz Baoueb** — Co-conception et développement de la version initiale
 
 ## Contribution PoC (Standalone Edition)
 
