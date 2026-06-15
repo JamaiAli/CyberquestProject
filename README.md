@@ -137,3 +137,7 @@ Pour cette version Standalone, la pile technologique est exclusivement frontale 
 - **BouazzaZayd** — Moteur de base & logique de scénarisation
 - **isselmou** — Graphismes de la carte interactive & Terminal
 - **JamaiAli** — Conception UX/UI globale & Intégration
+
+## Contribution PoC (Standalone Edition)
+
+- **Aziz Baoueb** — Architecture et développement intégral de la version Standalone (sans backend). Migration du moteur Node.js vers React, bypass des requêtes HTTP, et implémentation de la persistance locale via LocalStorage pour créer une application 100% autonome.
