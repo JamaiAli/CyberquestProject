@@ -1,78 +1,139 @@
-# CyberQuest: Standalone Edition (Proof of Concept)
+# CyberQuest — Edition Standalone (Proof of Concept)
 
-## Introduction
-This repository contains the "Proof of Concept" (PoC) branch for CyberQuest, a Hacker RPG simulating penetration testing workflows. The primary objective of this branch is to demonstrate the technical feasibility of running the entire application—including complex interactive mechanics, game state management, and command parsing—exclusively within the browser, requiring absolutely no backend server.
+Un jeu de simulation de pentest où vous incarnez un hacker devant compromettre un réseau d'entreprise (CorpNet). Explorez les machines de la carte, scannez les services, exploitez les vulnérabilités et récupérez les flags.
 
----
-
-## Game Logic and Mechanics
-CyberQuest places the user in the role of a cybersecurity professional tasked with infiltrating the fictional "NEXUS CORP" network. The gameplay loop is deeply integrated with real-world cybersecurity concepts.
-
-### 1. Interactive Terminal Interface
-The core of the interaction happens through a simulated terminal component. The user inputs commands inspired by actual security tools (such as Nmap, Nikto, SQLmap, Dirb, and Hydra) to interact with the simulated network environment.
-
-### 2. Sequential Attack Phases
-Infiltration of any target machine is strictly governed by a four-phase methodology:
-- **Reconnaissance**: Passive intelligence gathering (e.g., `recon`, `whois`).
-- **Scanning**: Active port and vulnerability scanning (e.g., `nmap -sV`, `nikto`).
-- **Exploitation**: Leveraging vulnerabilities to gain initial access (e.g., `sqlmap`, `hydra`).
-- **Post-Exploitation**: Privilege escalation and data exfiltration (e.g., `sudo -l`, reading `/flag.txt`).
-
-### 3. Progression System (RPG Elements)
-Success in executing correct commands during the appropriate phases yields Experience Points (XP). Accumulating XP increases the player's level and Health Points (HP). Furthermore, compromising specific machines yields credentials or network access that unlocks deeper segments of the network (e.g., pivoting from a perimeter Web Server to an internal Domain Controller).
-
-### 4. Pedagogical Feedback
-To ensure educational value, every valid command triggers an informational panel. This panel explains the underlying real-world cybersecurity concepts, detailing why a specific attack works and what vulnerabilities it exploits (e.g., Path Traversal, Kerberoasting, Privilege Escalation).
+Cette branche héberge une version **Proof of Concept (PoC)** dont l'architecture a été entièrement remaniée pour fonctionner de façon autonome dans le navigateur, sans serveur backend.
 
 ---
 
-## Architecture: Standalone Migration
-The transition from a Client/Server model (found in the `master` branch) to a 100% Standalone application required significant architectural refactoring.
+## Objectif du Proof of Concept (PoC)
 
-### Decentralization of the Game Engine
-In the original architecture, a Node.js Express backend was responsible for parsing commands, validating state transitions, and managing sessions. 
-In this PoC, the entire game engine (`backend/engine/`) was ported directly to the frontend (`frontend/src/engine/`) and refactored into modern JavaScript ES Modules. The React application now directly executes the engine logic locally in the user's browser.
+Ce Proof of Concept a pour but de valider la faisabilité technique d'une application riche et interactive (terminal simulé, progression RPG, validation de scénarios complexes) en utilisant une architecture purement **Frontend (Client-Side)**. 
 
-### Network Call Bypass
-All asynchronous HTTP requests previously used to communicate with the backend API have been completely eradicated. The latency is practically eliminated.
-
-*Original Server-Dependent Logic:*
-```javascript
-const response = await fetch('/api/command', { 
-  method: 'POST', 
-  body: JSON.stringify({ command, sessionId }) 
-});
-```
-
-*Refactored Standalone Logic:*
-```javascript
-const currentState = engineGetGameState(sessionId);
-const result = processCommand(command, currentState);
-const savedState = engineUpdateGameState(sessionId, result.newState);
-```
-
-### State Persistence via LocalStorage
-To simulate database persistence and ensure the player does not lose their progression upon refreshing the browser, the application utilizes the Web Storage API (`localStorage`).
-- **State Management (`cyberquest_sessions`)**: Continuously serializes and saves the active game state, including unlocked machines, current phase, XP, and HP.
-- **Leaderboard Management (`cyberquest_named_scores`)**: Mimics a relational database table to store and sort completed runs, enabling a fully functional "Hall of Fame" scoreboard without external database dependencies.
+### Que permet exactement cette version ?
+- **Lancement immédiat** : Aucun serveur Node.js ni base de données à configurer. L'application démarre et s'exécute intégralement dans le navigateur.
+- **Autonomie totale** : Le jeu peut fonctionner hors-ligne une fois chargé.
+- **Persistance locale** : La progression du joueur et le tableau des scores sont sauvegardés directement dans le navigateur de l'utilisateur.
 
 ---
 
-## Installation and Execution
+## Installation & Lancement
 
-Given the standalone nature of this architecture, deployment and execution are extremely lightweight. No database setup or backend server is required.
+L'installation est grandement simplifiée par rapport à la version d'origine.
+
+### 1. Prérequis
+- **Node.js** v18+
+- **npm**
+
+### 2. Lancement du jeu
+Placez-vous dans le dossier `frontend`, installez les dépendances et lancez le serveur de développement :
 
 ```bash
-# 1. Navigate to the frontend directory
 cd frontend
-
-# 2. Install dependencies
 npm install
-
-# 3. Launch the local development server (Vite)
 npm run dev
 ```
 
-The application will be instantly accessible via the browser at `http://localhost:5173`. 
+Le jeu sera alors accessible sur **http://localhost:5173**.
 
-*Note: The original `backend` directory remains in this repository strictly for architectural comparison and historical reference. It is not executed or required by this PoC.*
+---
+
+## Architecture et Différences avec la version originale
+
+Dans la version originale (`master`), l'architecture reposait sur un modèle Client/Serveur. Un serveur backend Node.js validait les commandes et stockait l'état du jeu.
+
+Dans ce PoC Standalone, **le backend a été court-circuité et intégré au frontend**.
+
+### Résumé des modifications :
+1. **Migration du Moteur** : Le moteur de jeu (`commandEngine.js` et `gameState.js`) a été migré depuis le backend vers le dossier `frontend/src/engine/` et transformé en modules JavaScript (ES Modules).
+2. **Bypass Réseau** : Les appels asynchrones via `fetch('/api/command')` ont été remplacés par des exécutions locales directes.
+3. **Stockage LocalStorage** : La persistance de l'état (points de vie, XP, machines compromises) et le système de High Scores sont désormais gérés par l'API Web `localStorage` au lieu d'être stockés dans la mémoire vive d'un serveur distant.
+
+---
+
+## Comment jouer
+
+### Vue Réseau — Commandes disponibles
+
+| Commande | Description |
+|----------|-------------|
+| `nmap 192.168.1.0/24` | Scanner le réseau et découvrir les machines |
+| `nmap -sV <ip>` | Scanner une machine précise |
+| `cd <ip>` | Entrer dans une salle (machine) |
+| `ls` | Lister les machines visibles |
+| `whoami` | Voir votre contexte attaquant |
+| `hint` | Obtenir un indice |
+| `help` | Toutes les commandes |
+
+### Mode Machine (Pentest) — 4 phases
+
+Une fois connecté à une machine (via `cd <ip>`), l'attaque suit une méthodologie stricte :
+
+| Phase | Commandes |
+|-------|-----------|
+| **1 — Reconnaissance** | `recon`, `whois <ip>` |
+| **2 — Scanning** | `nmap -sV <ip>`, `nikto -h <ip>`, `dirb http://<ip>` |
+| **3 — Exploitation** | `sqlmap`, `hydra`, `curl`, `nc` |
+| **4 — Post-exploitation** | `whoami`, `sudo -l`, `sudo python3`, `cat /flag.txt` |
+| **Quitter** | `exit` |
+
+> Tapez `hint` à tout moment pour obtenir une indication sur la phase en cours.
+
+### Ordre d'attaque recommandé
+
+```text
+nmap 192.168.1.0/24
+    ↓
+cd 192.168.1.10    → Web Server    [FACILE]   flag: CQ{w3b_s3rv3r_pwn3d}
+cd 192.168.1.20    → Mail Server   [MOYEN]    flag: CQ{m41l_s3rv3r_0wn3d}
+    ↓ (déblocage conditionnel)
+cd 192.168.1.30    → DB Server     [MOYEN]    flag: CQ{db_dump_g0t}
+    ↓
+cd 192.168.1.100   → Domain Controller [DIFFICILE] flag: CQ{d0m41n_4dm1n_pwn3d}
+```
+
+---
+
+## Structure du projet
+
+La structure a été adaptée pour cette version autonome :
+
+```text
+cyberquest/
+├── backend/                  # Conservé uniquement pour référence (Inactif dans le PoC)
+├── poc/                      # Éléments de conception initiaux
+└── frontend/
+    └── src/
+        ├── engine/           # Moteur de jeu migré (Logique, Commandes, État)
+        │   ├── commandEngine.js
+        │   └── gameState.js  # Gestion de l'état via LocalStorage
+        ├── components/
+        │   ├── GameMap.jsx     # Carte interactive (Canvas)
+        │   ├── Terminal.jsx    # Terminal simulé (xterm.js)
+        │   ├── HUD.jsx         # Barre de progression
+        │   ├── Scoreboard.jsx  # Classement (connecté au LocalStorage)
+        │   └── ...
+        ├── sounds.js           # API Web Audio
+        ├── styles/main.css
+        └── App.jsx             # Composant racine, coordonne l'état local
+```
+
+---
+
+## Technologies utilisées
+
+Pour cette version Standalone, la pile technologique est exclusivement frontale :
+
+- **Interface** : React 18, Vite
+- **Terminal interactif** : xterm.js
+- **Audio** : Web Audio API (génération synthétique)
+- **Persistance** : HTML5 Web Storage (LocalStorage)
+- **Graphismes** : HTML5 Canvas
+
+---
+
+## Auteurs originaux
+
+- **BouazzaZayd** — Moteur de base & logique de scénarisation
+- **isselmou** — Graphismes de la carte interactive & Terminal
+- **JamaiAli** — Conception UX/UI globale & Intégration
