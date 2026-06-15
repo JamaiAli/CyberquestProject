@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cyberquest - Rapport de Scan (PoC)</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Rapport de Scan de Vulnérabilités</h1>
+            <p>Proof of Concept - Stockage Local</p>
+        </header>
+        
+        <main>
+            <section class="form-section">
+                <h2>Ajouter une Vulnérabilité</h2>
+                <form id="vuln-form">
+                    <div class="form-group">
+                        <label for="title">Titre de la vulnérabilité :</label>
+                        <input type="text" id="title" required placeholder="Ex: Injection SQL">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="severity">Sévérité :</label>
+                        <select id="severity" required>
+                            <option value="Faible">Faible</option>
+                            <option value="Moyenne">Moyenne</option>
+                            <option value="Élevée">Élevée</option>
+                            <option value="Critique">Critique</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="description">Description :</label>
+                        <textarea id="description" required placeholder="Détails de la vulnérabilité..."></textarea>
+                    </div>
+
+                    <button type="submit">Enregistrer</button>
+                </form>
+            </section>
+
+            <section class="list-section">
+                <h2>Vulnérabilités Enregistrées</h2>
+                <ul id="vuln-list">
+                    <!-- Les éléments seront ajoutés ici dynamiquement -->
+                </ul>
+            </section>
+        </main>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
