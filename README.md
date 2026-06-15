@@ -1,77 +1,78 @@
-# CyberQuest — Standalone Edition (PoC)
+# CyberQuest: Standalone Edition (Proof of Concept)
 
-Bienvenue dans la branche **Proof of Concept (PoC)** de CyberQuest ! 
-Cette branche contient une version spéciale du jeu, conçue pour être **100% autonome et exécutable directement depuis le navigateur**, sans aucun besoin de lancer un serveur Backend ou une base de données. 
-
----
-
-## 🎯 Concept et Objectif du PoC
-
-L'objectif de ce PoC est de prouver la faisabilité technique du jeu et de ses mécaniques interactives complexes (Terminal, Gameplay RPG, Progression) de manière purement front-end. 
-
-Pour cela, le fonctionnement original Client/Serveur a été court-circuité : toute la logique métier et la sauvegarde de l'état ont été encapsulées directement dans l'application web React.
+## Introduction
+This repository contains the "Proof of Concept" (PoC) branch for CyberQuest, a Hacker RPG simulating penetration testing workflows. The primary objective of this branch is to demonstrate the technical feasibility of running the entire application—including complex interactive mechanics, game state management, and command parsing—exclusively within the browser, requiring absolutely no backend server.
 
 ---
 
-## 🏗️ Architecture et Modifications par rapport à la version `master`
+## Game Logic and Mechanics
+CyberQuest places the user in the role of a cybersecurity professional tasked with infiltrating the fictional "NEXUS CORP" network. The gameplay loop is deeply integrated with real-world cybersecurity concepts.
 
-### 1. Disparition du Serveur Node.js
-Dans la version originale (`master`), le jeu dépendait d'un backend Node.js (serveur Express) pour :
-- Traiter et valider les commandes du joueur (le "moteur" du jeu).
-- Maintenir l'état de la partie (XP, HP, machines compromises).
-- Stocker les classements des joueurs.
+### 1. Interactive Terminal Interface
+The core of the interaction happens through a simulated terminal component. The user inputs commands inspired by actual security tools (such as Nmap, Nikto, SQLmap, Dirb, and Hydra) to interact with the simulated network environment.
 
-Dans ce PoC, le code du moteur de jeu (`backend/engine`) a été **transféré intégralement dans le dossier `frontend/src/engine/`** et converti en modules JavaScript modernes (ES Modules).
+### 2. Sequential Attack Phases
+Infiltration of any target machine is strictly governed by a four-phase methodology:
+- **Reconnaissance**: Passive intelligence gathering (e.g., `recon`, `whois`).
+- **Scanning**: Active port and vulnerability scanning (e.g., `nmap -sV`, `nikto`).
+- **Exploitation**: Leveraging vulnerabilities to gain initial access (e.g., `sqlmap`, `hydra`).
+- **Post-Exploitation**: Privilege escalation and data exfiltration (e.g., `sudo -l`, reading `/flag.txt`).
 
-### 2. Le Bypass des Appels Réseau (Fetch)
-Dans l'interface, toutes les requêtes HTTP asynchrones vers l'API (par exemple `fetch('/api/command')`) ont été supprimées et remplacées par des appels locaux et synchrones au nouveau moteur embarqué :
+### 3. Progression System (RPG Elements)
+Success in executing correct commands during the appropriate phases yields Experience Points (XP). Accumulating XP increases the player's level and Health Points (HP). Furthermore, compromising specific machines yields credentials or network access that unlocks deeper segments of the network (e.g., pivoting from a perimeter Web Server to an internal Domain Controller).
+
+### 4. Pedagogical Feedback
+To ensure educational value, every valid command triggers an informational panel. This panel explains the underlying real-world cybersecurity concepts, detailing why a specific attack works and what vulnerabilities it exploits (e.g., Path Traversal, Kerberoasting, Privilege Escalation).
+
+---
+
+## Architecture: Standalone Migration
+The transition from a Client/Server model (found in the `master` branch) to a 100% Standalone application required significant architectural refactoring.
+
+### Decentralization of the Game Engine
+In the original architecture, a Node.js Express backend was responsible for parsing commands, validating state transitions, and managing sessions. 
+In this PoC, the entire game engine (`backend/engine/`) was ported directly to the frontend (`frontend/src/engine/`) and refactored into modern JavaScript ES Modules. The React application now directly executes the engine logic locally in the user's browser.
+
+### Network Call Bypass
+All asynchronous HTTP requests previously used to communicate with the backend API have been completely eradicated. The latency is practically eliminated.
+
+*Original Server-Dependent Logic:*
 ```javascript
-// Avant (Version Master avec Backend) :
-const res = await fetch('/api/command', { body: JSON.stringify({ command, sessionId }) });
-
-// Maintenant (Version PoC Standalone) :
-const state = engineGetGameState(sessionId);
-const res = processCommand(command, state); // Calcul local immédiat !
-const savedState = engineUpdateGameState(sessionId, res.newState);
+const response = await fetch('/api/command', { 
+  method: 'POST', 
+  body: JSON.stringify({ command, sessionId }) 
+});
 ```
 
-### 3. Persistance des Données via `LocalStorage`
-Afin de ne pas perdre la progression du joueur s'il actualise la page (et simuler une base de données), le stockage en mémoire vive du serveur Node.js a été remplacé par l'utilisation de l'API web `localStorage`.
-- **Clé `cyberquest_sessions`** : Sauvegarde en temps réel de l'avancement, des points de vie, de l'XP et des machines débloquées par l'utilisateur.
-- **Clé `cyberquest_named_scores`** : Remplace la base de données de "High Scores" afin que le composant *Scoreboard* (Hall of Fame) puisse fonctionner de façon persistante sans serveur central.
+*Refactored Standalone Logic:*
+```javascript
+const currentState = engineGetGameState(sessionId);
+const result = processCommand(command, currentState);
+const savedState = engineUpdateGameState(sessionId, result.newState);
+```
+
+### State Persistence via LocalStorage
+To simulate database persistence and ensure the player does not lose their progression upon refreshing the browser, the application utilizes the Web Storage API (`localStorage`).
+- **State Management (`cyberquest_sessions`)**: Continuously serializes and saves the active game state, including unlocked machines, current phase, XP, and HP.
+- **Leaderboard Management (`cyberquest_named_scores`)**: Mimics a relational database table to store and sort completed runs, enabling a fully functional "Hall of Fame" scoreboard without external database dependencies.
 
 ---
 
-## 🎮 Fonctionnement du Jeu
+## Installation and Execution
 
-CyberQuest est un "Hacker RPG" simulant un test d'intrusion. L'utilisateur (le hacker) doit s'introduire dans le réseau fictif de *NEXUS CORP* :
-
-1. **Terminal Interactif** : Le joueur tape des commandes inspirées de véritables outils de cybersécurité (Nmap, SQLmap, Nikto, Dirb) dans le composant Terminal central.
-2. **Mécanique de Phases** : Chaque machine à pirater possède 4 phases scénarisées à valider séquentiellement :
-   - *Reconnaissance* (ex: `recon`, `whois`)
-   - *Scanning* (ex: `nmap`, `nikto`)
-   - *Exploitation* (ex: `sqlmap`, `hydra`)
-   - *Post-Exploitation / PrivEsc* (ex: `sudo -l`, `cat /flag.txt`)
-3. **Progression** : En réussissant les actions, le joueur gagne de l'expérience (XP), monte de niveau, augmente ses points de vie (HP) et débloque l'accès à de nouvelles cibles plus profondes dans le réseau (ex: sauter du *Web Server* vers le *Domain Controller* interne en utilisant les credentials trouvés).
-4. **Pédagogie** : À chaque commande valide, le jeu affiche un "Panneau Pédagogique" qui explique le concept cybernétique réel à l'utilisateur (ex: ce qu'est une attaque Path Traversal, l'utilité du kerberoasting, etc.).
-
----
-
-## 🚀 Comment lancer le projet ?
-
-Puisque le jeu est 100% autonome, l'installation est triviale et immédiate :
+Given the standalone nature of this architecture, deployment and execution are extremely lightweight. No database setup or backend server is required.
 
 ```bash
-# 1. Se placer dans le répertoire frontend
+# 1. Navigate to the frontend directory
 cd frontend
 
-# 2. Installer les dépendances
+# 2. Install dependencies
 npm install
 
-# 3. Lancer le serveur de développement local (Vite)
+# 3. Launch the local development server (Vite)
 npm run dev
 ```
 
-Ouvrez ensuite simplement votre navigateur sur l'adresse indiquée dans le terminal (généralement `http://localhost:5173`).
+The application will be instantly accessible via the browser at `http://localhost:5173`. 
 
-*Note : Le dossier `backend` originel a été laissé dans le dépôt à titre purement comparatif, mais il n'est absolument pas utilisé ou nécessaire pour l'exécution.*
+*Note: The original `backend` directory remains in this repository strictly for architectural comparison and historical reference. It is not executed or required by this PoC.*
