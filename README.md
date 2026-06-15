@@ -140,3 +140,4 @@ cyberquest/
 - **BouazzaZayd** — Moteur backend & logique pentest
 - **isselmou** — Carte interactive & terminal
 - **JamaiAli** — Interface, intégration & UX
+- **Aziz Baoueb** — Co-conception de la version initiale & Architecture de la version Standalone (branche `proof-of-concept`)
