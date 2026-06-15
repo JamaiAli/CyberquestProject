@@ -1,0 +1,37 @@
+{
+  "sword": {
+    "id": "sword",
+    "name": "Épée bash",
+    "icon": "⚔",
+    "description": "Une épée forgée en pur bash script. Augmente les dégâts.",
+    "effect": { "attackBonus": 10 }
+  },
+  "map": {
+    "id": "map",
+    "name": "Carte du monde",
+    "icon": "🗺",
+    "description": "Révèle toutes les zones de la carte.",
+    "effect": { "revealMap": true }
+  },
+  "scanner": {
+    "id": "scanner",
+    "name": "Scanner nmap",
+    "icon": "📡",
+    "description": "Un scanner réseau avancé. Réduit le temps de scan.",
+    "effect": { "scanBonus": 5 }
+  },
+  "key": {
+    "id": "key",
+    "name": "Clé SSH",
+    "icon": "🔑",
+    "description": "Une clé SSH privée. Permet de vous connecter à des serveurs.",
+    "effect": { "unlockSSH": true }
+  },
+  "exploit": {
+    "id": "exploit",
+    "name": "Exploit 0-day",
+    "icon": "💣",
+    "description": "Un exploit rare. Inflige des dégâts massifs aux ennemis.",
+    "effect": { "attackBonus": 50, "singleUse": true }
+  }
+}

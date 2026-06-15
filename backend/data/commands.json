@@ -1,0 +1,110 @@
+{
+  "ls": {
+    "zone": 0,
+    "xpReward": 5,
+    "pedagogie": "'ls' liste les fichiers et dossiers du répertoire courant. C'est la première commande à maîtriser pour explorer un système Linux.",
+    "handler": "listZoneContents"
+  },
+  "cd": {
+    "zone": 0,
+    "xpReward": 5,
+    "pedagogie": "'cd' (change directory) permet de naviguer entre les dossiers. 'cd ..' remonte d'un niveau.",
+    "handler": "changeDirectory"
+  },
+  "pwd": {
+    "zone": 0,
+    "xpReward": 3,
+    "pedagogie": "'pwd' (print working directory) affiche le chemin absolu du répertoire courant.",
+    "handler": "printWorkingDirectory"
+  },
+  "cat": {
+    "zone": 0,
+    "xpReward": 5,
+    "pedagogie": "'cat' affiche le contenu d'un fichier. En pentest, utilisé pour lire des fichiers de config, logs ou credentials.",
+    "handler": "catFile"
+  },
+  "grep": {
+    "zone": 0,
+    "xpReward": 8,
+    "pedagogie": "'grep' cherche un motif dans un fichier. Très utilisé pour filtrer des logs ou trouver des mots de passe dans des fichiers.",
+    "handler": "grepFile"
+  },
+  "find": {
+    "zone": 0,
+    "xpReward": 8,
+    "pedagogie": "'find' recherche des fichiers selon des critères. En pentest : 'find / -perm -4000' trouve les binaires SUID.",
+    "handler": "findFiles"
+  },
+  "chmod": {
+    "zone": 0,
+    "xpReward": 10,
+    "pedagogie": "'chmod' modifie les permissions d'un fichier. 'chmod +x' rend un fichier exécutable.",
+    "handler": "changeMode"
+  },
+  "ps": {
+    "zone": 0,
+    "xpReward": 5,
+    "pedagogie": "'ps' liste les processus en cours. 'ps aux' montre tous les processus — utile pour détecter des services vulnérables.",
+    "handler": "listProcesses"
+  },
+  "kill": {
+    "zone": 0,
+    "xpReward": 10,
+    "pedagogie": "'kill -9 <PID>' termine un processus de force. En pentest, symbolise la neutralisation d'un ennemi.",
+    "handler": "killProcess"
+  },
+  "whoami": {
+    "zone": 0,
+    "xpReward": 3,
+    "pedagogie": "'whoami' affiche l'utilisateur courant. En post-exploitation, permet de vérifier ses privilèges.",
+    "handler": "whoami"
+  },
+  "nmap": {
+    "zone": 1,
+    "xpReward": 20,
+    "pedagogie": "'nmap' (Network Mapper) est le scanner réseau standard. 'nmap -sV' détecte les versions des services sur les ports ouverts.",
+    "handler": "nmapScan"
+  },
+  "whois": {
+    "zone": 1,
+    "xpReward": 10,
+    "pedagogie": "'whois' interroge les registres de noms de domaine pour obtenir des infos sur le propriétaire d'un domaine.",
+    "handler": "whoisLookup"
+  },
+  "nslookup": {
+    "zone": 1,
+    "xpReward": 10,
+    "pedagogie": "'nslookup' résout un nom de domaine en adresse IP. Première étape de la reconnaissance réseau.",
+    "handler": "nslookup"
+  },
+  "hydra": {
+    "zone": 2,
+    "xpReward": 30,
+    "pedagogie": "'hydra' est un outil de brute-force pour tester des identifiants sur de nombreux protocoles (SSH, HTTP, FTP...).",
+    "handler": "hydraAttack"
+  },
+  "sqlmap": {
+    "zone": 2,
+    "xpReward": 30,
+    "pedagogie": "'sqlmap' automatise la détection et l'exploitation des injections SQL. Toujours utiliser sur des cibles autorisées.",
+    "handler": "sqlmapAttack"
+  },
+  "nc": {
+    "zone": 2,
+    "xpReward": 25,
+    "pedagogie": "'nc' (netcat) est le couteau suisse réseau : écouter des ports, transférer des fichiers, créer des reverse shells.",
+    "handler": "netcat"
+  },
+  "ssh": {
+    "zone": 3,
+    "xpReward": 20,
+    "pedagogie": "'ssh' permet de se connecter à distance de façon sécurisée. En post-exploitation : pivot vers d'autres machines.",
+    "handler": "sshConnect"
+  },
+  "sudo": {
+    "zone": 3,
+    "xpReward": 25,
+    "pedagogie": "'sudo -l' liste les commandes exécutables avec les droits root. Vecteur classique d'élévation de privilèges.",
+    "handler": "sudoCheck"
+  }
+}
