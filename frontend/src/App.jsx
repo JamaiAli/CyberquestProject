@@ -1,38 +1,101 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import GameMap from './components/GameMap';
 import Terminal from './components/Terminal';
 import HUD from './components/HUD';
 import PedaPanel from './components/PedaPanel';
 import MachineView from './components/MachineView';
 import Scoreboard from './components/Scoreboard';
+import CharacterSelect from './components/CharacterSelect';
+import IntroScreen from './components/IntroScreen';
+import GameOver from './components/GameOver';
+import Victory from './components/Victory';
 
-const SESSION_ID = crypto.randomUUID();
+const TOTAL_SECONDS = 360; // 6 minutes
 
-const INITIAL_STATE = {
-  sessionId: SESSION_ID,
-  xp: 0, level: 1, hp: 100, maxHp: 100,
-  mode: 'NETWORK',
-  pwnedMachines: [],
-  scannedMachines: [],
-  unlockedMachines: ['webserver', 'mailserver'],
-  currentMachine: null,
-  machinePhase: 0,
-  rootObtained: false,
-  score: 0,
-  gameWon: false,
-};
+function makeSessionId() { return crypto.randomUUID(); }
+
+function makeInitialState(sessionId) {
+  return {
+    sessionId,
+    xp: 0, level: 1, hp: 100, maxHp: 100,
+    mode: 'NETWORK',
+    pwnedMachines: [],
+    scannedMachines: [],
+    unlockedMachines: ['webserver', 'mailserver'],
+    currentMachine: null,
+    machinePhase: 0,
+    rootObtained: false,
+    score: 0,
+    gameWon: false,
+  };
+}
 
 export default function App() {
-  const [gameState, setGameState]   = useState(INITIAL_STATE);
+  const [screen, setScreen]       = useState('select'); // 'select' | 'intro' | 'game' | 'gameover' | 'victory'
+  const [player, setPlayer]       = useState(null);
+  const [sessionId, setSessionId] = useState(() => makeSessionId());
+  const [gameState, setGameState] = useState(() => makeInitialState(sessionId));
   const [lastCommand, setLastCommand] = useState(null);
-  const [pedaInfo, setPedaInfo]     = useState(null);
-  const [mapEffect, setMapEffect]   = useState(null);
+  const [pedaInfo, setPedaInfo]   = useState(null);
+  const [mapEffect, setMapEffect] = useState(null);
   const [showScoreboard, setShowScoreboard] = useState(false);
   const [notification, setNotification] = useState(null);
+  const [timeLeft, setTimeLeft]   = useState(TOTAL_SECONDS);
+  const [elapsed, setElapsed]     = useState(0);
+
+  const timerRef      = useRef(null);
+  const writeToTermRef = useRef(null); // set by Terminal via onWriteRef
+  const timerWarnSent = useRef({ at120: false, at60: false });
 
   const mode    = gameState.mode    || 'NETWORK';
   const machine = gameState.currentMachine;
   const phase   = gameState.machinePhase ?? 0;
+
+  // Start/stop countdown when game screen active
+  useEffect(() => {
+    if (screen !== 'game') {
+      clearInterval(timerRef.current);
+      return;
+    }
+    timerWarnSent.current = { at120: false, at60: false };
+    timerRef.current = setInterval(() => {
+      setTimeLeft(prev => {
+        const next = prev - 1;
+        setElapsed(e => e + 1);
+
+        // ORACLE warnings pushed to terminal
+        if (next === 120 && !timerWarnSent.current.at120) {
+          timerWarnSent.current.at120 = true;
+          writeToTermRef.current?.(
+            '\x1b[35mORACLE > 2 minutes. Les techniciens NEXUS remontent ta connexion.\x1b[0m\n' +
+            '\x1b[35mORACLE > Accélère. Tu n\'as plus le temps d\'hésiter.\x1b[0m'
+          );
+        }
+        if (next === 60 && !timerWarnSent.current.at60) {
+          timerWarnSent.current.at60 = true;
+          writeToTermRef.current?.(
+            '\x1b[31m⚠ ORACLE > 60 secondes. Ils arrivent. TERMINE LA MISSION.\x1b[0m'
+          );
+        }
+
+        if (next <= 0) {
+          clearInterval(timerRef.current);
+          setScreen('gameover');
+          return 0;
+        }
+        return next;
+      });
+    }, 1000);
+    return () => clearInterval(timerRef.current);
+  }, [screen]);
+
+  // Watch for game win
+  useEffect(() => {
+    if (gameState.gameWon && screen === 'game') {
+      clearInterval(timerRef.current);
+      setScreen('victory');
+    }
+  }, [gameState.gameWon]);
 
   const showNotif = (msg, color = '#00ff41') => {
     setNotification({ msg, color });
@@ -45,7 +108,7 @@ export default function App() {
       const res = await fetch('/api/command', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ command, sessionId: SESSION_ID }),
+        body: JSON.stringify({ command, sessionId }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const result = await res.json();
@@ -78,7 +141,54 @@ export default function App() {
     } catch (err) {
       return '\x1b[31m[ERREUR] Backend non disponible. Lance: node backend/server.js\x1b[0m';
     }
-  }, []);
+  }, [sessionId]);
+
+  const handleRestart = () => {
+    const newId = makeSessionId();
+    setSessionId(newId);
+    setGameState(makeInitialState(newId));
+    setTimeLeft(TOTAL_SECONDS);
+    setElapsed(0);
+    setPlayer(null);
+    setScreen('select');
+  };
+
+  const handleCharSelect = (selectedPlayer) => {
+    setPlayer(selectedPlayer);
+    setScreen('intro');
+  };
+
+  // ── Screens ─────────────────────────────────────────────────────────────────
+
+  if (screen === 'select') {
+    return <CharacterSelect onSelect={handleCharSelect} />;
+  }
+
+  if (screen === 'intro') {
+    return (
+      <IntroScreen
+        hackerName={player?.hackerName || 'GHOST'}
+        onDone={() => setScreen('game')}
+      />
+    );
+  }
+
+  if (screen === 'gameover') {
+    return <GameOver gameState={gameState} onRestart={handleRestart} />;
+  }
+
+  if (screen === 'victory') {
+    return (
+      <Victory
+        hackerName={player?.hackerName || 'GHOST'}
+        gameState={gameState}
+        elapsed={elapsed}
+        onRestart={handleRestart}
+      />
+    );
+  }
+
+  // ── Game screen ──────────────────────────────────────────────────────────────
 
   return (
     <div style={{
@@ -90,7 +200,7 @@ export default function App() {
     }}>
       {/* Row 1: HUD full width */}
       <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center' }}>
-        <HUD gameState={gameState} mode={mode} />
+        <HUD gameState={gameState} mode={mode} player={player} timeLeft={timeLeft} />
         <button onClick={() => setShowScoreboard(true)} style={{
           marginLeft: 'auto', marginRight: '10px', flexShrink: 0,
           background: 'transparent', border: '1px solid #1a1a2a',
@@ -104,10 +214,10 @@ export default function App() {
         </button>
       </div>
 
-      {/* Row 2 Left: Room Map (always visible) */}
-      <GameMap gameState={gameState} effect={mapEffect} />
+      {/* Row 2 Left: Room Map */}
+      <GameMap gameState={gameState} effect={mapEffect} hackerName={player?.hackerName} playerEmoji={player?.emoji} />
 
-      {/* Row 2 Right: MachineView (in machine) + PedaPanel */}
+      {/* Row 2 Right: MachineView + PedaPanel */}
       <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {mode === 'MACHINE' && machine && (
           <div style={{ flex: '0 0 auto', maxHeight: '55%', overflow: 'auto', borderBottom: '1px solid #1a1a2a' }}>
@@ -121,7 +231,7 @@ export default function App() {
 
       {/* Row 3: Terminal full width */}
       <div style={{ gridColumn: '1 / -1' }}>
-        <Terminal onCommand={handleCommand} gameState={gameState} />
+        <Terminal onCommand={handleCommand} gameState={gameState} onWriteRef={writeToTermRef} />
       </div>
 
       {/* Toast notification */}
@@ -135,34 +245,6 @@ export default function App() {
           animation: 'fadeIn 0.2s ease', zIndex: 500,
         }}>
           {notification.msg}
-        </div>
-      )}
-
-      {/* Game win banner */}
-      {gameState.gameWon && (
-        <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.88)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 1000, flexDirection: 'column', gap: '16px',
-          fontFamily: 'monospace',
-        }}>
-          <div style={{ color: '#ffd700', fontSize: '28px', fontWeight: 'bold', textShadow: '0 0 30px #ffd700' }}>
-            🏆 CYBERQUEST COMPLÉTÉ !
-          </div>
-          <div style={{ color: '#00ff41', fontSize: '14px' }}>
-            Tu es Domain Administrator de CORP.LOCAL
-          </div>
-          <div style={{ color: '#555', fontSize: '12px' }}>
-            Score final : {gameState.xp} XP — Niveau {gameState.level}
-          </div>
-          <button onClick={() => setShowScoreboard(true)} style={{
-            marginTop: '10px', padding: '10px 24px',
-            background: '#0a1a0a', border: '1px solid #00ff41',
-            color: '#00ff41', fontFamily: 'monospace', fontSize: '13px',
-            cursor: 'pointer', borderRadius: '4px',
-          }}>
-            Voir le classement
-          </button>
         </div>
       )}
 

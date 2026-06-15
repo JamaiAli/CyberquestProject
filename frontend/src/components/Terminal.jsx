@@ -6,25 +6,6 @@ import 'xterm/css/xterm.css';
 
 const HISTORY_MAX = 50;
 
-const INTRO_MESSAGES = [
-  { text: '╔══════════════════════════════════════════════╗', color: '32', delay: 0 },
-  { text: '║    ⚔  CYBERQUEST v2.0 — Pentest RPG  ⚔     ║', color: '32', delay: 80 },
-  { text: '╚══════════════════════════════════════════════╝', color: '32', delay: 160 },
-  { text: '', delay: 240 },
-  { text: '🌍 Tu es sur ta machine Kali Linux.', color: '33', delay: 450 },
-  { text: '   Le réseau cible CorpNet (192.168.1.0/24) t\'attend.', color: '37', delay: 750 },
-  { text: '', delay: 950 },
-  { text: '🎯 MISSION : Compromettre les 4 machines du réseau.', color: '36', delay: 1100 },
-  { text: '             Trouver les flags. Devenir Domain Admin.', color: '36', delay: 1250 },
-  { text: '', delay: 1400 },
-  { text: '💡 POUR COMMENCER :', color: '33', delay: 1550 },
-  { text: '   nmap 192.168.1.0/24   → découvrir les machines', color: '33', delay: 1700 },
-  { text: '   cd 192.168.1.10       → entrer dans une salle', color: '33', delay: 1850 },
-  { text: '   hint                  → obtenir un indice', color: '33', delay: 2000 },
-  { text: '   help                  → toutes les commandes', color: '33', delay: 2150 },
-  { text: '', delay: 2300 },
-];
-
 const CMDS_NETWORK = ['ls','nmap','cd','whoami','hint','help','clear','scores'];
 const CMDS_MACHINE = ['recon','nmap','nikto','dirb','searchsploit','sqlmap','hydra','curl','nc','whoami','sudo','find','cat','hint','help','exit','clear','scores'];
 
@@ -36,7 +17,7 @@ function buildPrompt(mode, machine) {
   return `\x1b[36mattacker@kali\x1b[0m:\x1b[34m~/pentest\x1b[0m$ `;
 }
 
-export default function Terminal({ onCommand, gameState }) {
+export default function Terminal({ onCommand, gameState, onWriteRef }) {
   const containerRef = useRef(null);
   const termRef      = useRef(null);
   const inputRef     = useRef('');
@@ -45,7 +26,6 @@ export default function Terminal({ onCommand, gameState }) {
   const modeRef      = useRef('NETWORK');
   const machineRef   = useRef(null);
 
-  // Keep refs in sync with gameState
   useEffect(() => {
     modeRef.current    = gameState?.mode    || 'NETWORK';
     machineRef.current = gameState?.currentMachine || null;
@@ -89,30 +69,26 @@ export default function Terminal({ onCommand, gameState }) {
     const ro = new ResizeObserver(doFit);
     ro.observe(containerRef.current);
 
-    // Staggered intro
-    INTRO_MESSAGES.forEach(({ text, color, delay }) => {
-      setTimeout(() => {
+    termRef.current = term;
+
+    // Expose write function for ORACLE messages
+    if (onWriteRef) {
+      onWriteRef.current = (text) => {
         if (!termRef.current) return;
-        if (color) term.writeln(`\x1b[${color}m${text}\x1b[0m`);
-        else term.writeln('');
-      }, delay);
-    });
-    setTimeout(() => {
-      if (!termRef.current) return;
-      term.write(buildPrompt(modeRef.current, machineRef.current));
-    }, 2400);
+        text.split('\n').forEach(line => termRef.current.writeln(line));
+        termRef.current.write(buildPrompt(modeRef.current, machineRef.current));
+      };
+    }
+
+    term.write(buildPrompt('NETWORK', null));
 
     term.onKey(async ({ key, domEvent }) => {
       const code = domEvent.keyCode;
       const dk = domEvent.key.toLowerCase();
 
-      // Ctrl+C : copier la sélection si elle existe, sinon annuler la commande
       if (domEvent.ctrlKey && dk === 'c') {
         const sel = term.getSelection();
-        if (sel) {
-          navigator.clipboard.writeText(sel).catch(() => {});
-          return;
-        }
+        if (sel) { navigator.clipboard.writeText(sel).catch(() => {}); return; }
         term.writeln('^C');
         inputRef.current = '';
         histIdxRef.current = -1;
@@ -120,18 +96,16 @@ export default function Terminal({ onCommand, gameState }) {
         return;
       }
 
-      // Ctrl+V : coller depuis le presse-papiers
       if (domEvent.ctrlKey && dk === 'v') {
         try {
           const text = await navigator.clipboard.readText();
-          const line = text.split('\n')[0]; // première ligne seulement
+          const line = text.split('\n')[0];
           inputRef.current += line;
           term.write(line);
         } catch (_) {}
         return;
       }
 
-      // Ctrl+L : effacer le terminal
       if (domEvent.ctrlKey && dk === 'l') {
         term.clear();
         term.write(buildPrompt(modeRef.current, machineRef.current));
@@ -140,7 +114,7 @@ export default function Terminal({ onCommand, gameState }) {
 
       sounds.keyPress();
 
-      if (code === 13) { // Enter
+      if (code === 13) {
         const cmd = inputRef.current.trim();
         term.writeln('');
 
@@ -166,12 +140,12 @@ export default function Terminal({ onCommand, gameState }) {
         inputRef.current = '';
         term.write(buildPrompt(modeRef.current, machineRef.current));
 
-      } else if (code === 8) { // Backspace
+      } else if (code === 8) {
         if (inputRef.current.length > 0) {
           inputRef.current = inputRef.current.slice(0, -1);
           term.write('\b \b');
         }
-      } else if (code === 38) { // Arrow Up
+      } else if (code === 38) {
         if (historyRef.current.length > 0) {
           histIdxRef.current = Math.min(histIdxRef.current + 1, historyRef.current.length - 1);
           const prev = historyRef.current[histIdxRef.current];
@@ -179,7 +153,7 @@ export default function Terminal({ onCommand, gameState }) {
           inputRef.current = prev;
           term.write(prev);
         }
-      } else if (code === 40) { // Arrow Down
+      } else if (code === 40) {
         if (histIdxRef.current > 0) {
           histIdxRef.current--;
           const next = historyRef.current[histIdxRef.current];
@@ -191,7 +165,7 @@ export default function Terminal({ onCommand, gameState }) {
           term.write('\b \b'.repeat(inputRef.current.length));
           inputRef.current = '';
         }
-      } else if (code === 9) { // Tab autocomplete
+      } else if (code === 9) {
         domEvent.preventDefault();
         const partial = inputRef.current;
         const cmds = modeRef.current === 'MACHINE' ? CMDS_MACHINE : CMDS_NETWORK;
@@ -212,8 +186,7 @@ export default function Terminal({ onCommand, gameState }) {
       }
     });
 
-    termRef.current = term;
-    return () => { ro.disconnect(); term.dispose(); };
+    return () => { ro.disconnect(); term.dispose(); termRef.current = null; };
   }, []);
 
   return (

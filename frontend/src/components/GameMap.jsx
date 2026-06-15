@@ -2,7 +2,6 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 
 const CW = 800, CH = 578;
 
-// Room definitions — cx/cy = center, rw/rh = half-dimensions
 const ROOMS = [
   {
     id: 'hub', name: 'Kali Linux', sub: 'attacker — 10.0.0.1',
@@ -49,9 +48,12 @@ const CORRIDORS = [
   ['dbserver','dc'],
 ];
 
+// Walking animation: alternate between two poses when moving
+const WALK_FRAMES = ['🧑‍💻', '🏃'];
+
 function lerp(a, b, t) { return a + (b - a) * t; }
 
-export default function GameMap({ gameState, effect }) {
+export default function GameMap({ gameState, effect, hackerName, playerEmoji }) {
   const canvasRef = useRef(null);
   const charPos   = useRef({ x: 400, y: 45 });
   const charDst   = useRef({ x: 400, y: 45 });
@@ -100,6 +102,12 @@ export default function GameMap({ gameState, effect }) {
       charPos.current.x = lerp(charPos.current.x, charDst.current.x, 0.09);
       charPos.current.y = lerp(charPos.current.y, charDst.current.y, 0.09);
 
+      const distToDst = Math.hypot(
+        charDst.current.x - charPos.current.x,
+        charDst.current.y - charPos.current.y
+      );
+      const isMoving = distToDst > 3;
+
       // ── Background ─────────────────────────────────────
       ctx.fillStyle = '#050508';
       ctx.fillRect(0, 0, CW, CH);
@@ -120,10 +128,9 @@ export default function GameMap({ gameState, effect }) {
         const aPwned  = pwned.includes(a.id) && pwned.includes(b.id);
         const aActive = activeId === aId || activeId === bId;
 
-        // Hallway — two parallel lines
         const dx = b.cx - a.cx, dy = b.cy - a.cy;
         const len = Math.hypot(dx, dy);
-        const nx = -dy / len * 6, ny = dx / len * 6;  // normal offset for width
+        const nx = -dy / len * 6, ny = dx / len * 6;
 
         ctx.fillStyle = bLocked ? '#0d0d10' : aPwned ? '#00ff4110' : aActive ? '#ff660012' : '#14141e';
         ctx.beginPath();
@@ -134,7 +141,6 @@ export default function GameMap({ gameState, effect }) {
         ctx.closePath();
         ctx.fill();
 
-        // Hallway walls
         ctx.strokeStyle = bLocked ? '#111' : aPwned ? '#00ff4130' : '#1e1e28';
         ctx.lineWidth = 1;
         ctx.setLineDash(bLocked ? [4, 8] : []);
@@ -155,7 +161,6 @@ export default function GameMap({ gameState, effect }) {
         const isHub     = room.id === 'hub' && !activeId;
         const pulse     = 0.82 + Math.sin(t * 0.06) * 0.18;
 
-        // — Floor —
         let floorC = isLocked ? '#080808' : isPwned ? '#021002' : isScanned ? '#120c00' : isActive ? '#0e0800' : room.floor;
         ctx.fillStyle = floorC;
         ctx.fillRect(rx, ry, rw, rh);
@@ -167,7 +172,6 @@ export default function GameMap({ gameState, effect }) {
         for (let gx = rx + TS; gx < rx + rw; gx += TS) { ctx.beginPath(); ctx.moveTo(gx, ry); ctx.lineTo(gx, ry + rh); ctx.stroke(); }
         for (let gy = ry + TS; gy < ry + rh; gy += TS) { ctx.beginPath(); ctx.moveTo(rx, gy); ctx.lineTo(rx + rw, gy); ctx.stroke(); }
 
-        // — Walls —
         let wallC = isLocked ? '#1a1a1a' : isPwned ? '#00aa44' : isScanned ? '#664400' : isActive ? '#ff8800' : room.wall;
         const glowC = isActive ? '#ff6600' : isPwned ? '#00ff41' : isHub ? '#00ff4166' : null;
         if (glowC) { ctx.shadowColor = glowC; ctx.shadowBlur = 16 * pulse; }
@@ -186,8 +190,6 @@ export default function GameMap({ gameState, effect }) {
           ctx.beginPath(); ctx.moveTo(cx2 + sx*cs, cy2); ctx.lineTo(cx2, cy2); ctx.lineTo(cx2, cy2 + sy*cs); ctx.stroke();
         });
 
-        // — Interior content —
-
         // Icon
         ctx.shadowBlur = 0;
         const iconSize = room.type === 'hub' ? 14 : 18;
@@ -202,21 +204,18 @@ export default function GameMap({ gameState, effect }) {
         ctx.fillStyle = isPwned ? '#00ff41' : isLocked ? '#2a2a2a' : isActive ? '#ffaa44' : isScanned ? '#ccaa44' : '#888';
         ctx.fillText(isLocked ? '???' : room.name, room.cx, room.cy + (room.rh < 40 ? 4 : 2));
 
-        // Sub / IP
         if (room.rh >= 35) {
           ctx.font = '8px monospace';
           ctx.fillStyle = '#444';
           ctx.fillText(isLocked ? '???.???.???.???' : room.sub, room.cx, room.cy + 14);
         }
 
-        // Difficulty
         if (room.difficulty && !isLocked && room.rh >= 50) {
           ctx.font = '7px monospace';
           ctx.fillStyle = DIFF_COL[room.difficulty] || '#555';
           ctx.fillText(`[${room.difficulty.toUpperCase()}]`, room.cx, room.cy + 25);
         }
 
-        // Badges above room
         if (isPwned) {
           ctx.fillStyle = '#00ff4199';
           ctx.font = 'bold 8px monospace';
@@ -227,7 +226,6 @@ export default function GameMap({ gameState, effect }) {
           ctx.fillText('● SCANNÉ', room.cx, ry - 5);
         }
 
-        // Active ping rings
         if (isActive || isHub) {
           const maxR = Math.max(room.rw, room.rh) + 5;
           const frame = t % 40;
@@ -245,20 +243,29 @@ export default function GameMap({ gameState, effect }) {
       const cp = charPos.current;
       const bob = Math.sin(t * 0.09) * 1.5;
 
-      // Shadow under char
+      // Shadow
       ctx.fillStyle = 'rgba(0,255,65,0.08)';
       ctx.beginPath();
       ctx.ellipse(cp.x, cp.y + 9, 9, 3, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // Char emoji
+      // Char emoji — walk animation when moving
+      const walkFrame = isMoving ? WALK_FRAMES[Math.floor(t / 8) % WALK_FRAMES.length] : (playerEmoji || '🧑‍💻');
       ctx.shadowColor = '#00ff41';
       ctx.shadowBlur = 12;
       ctx.font = '15px serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('🧑‍💻', cp.x, cp.y - 5 + bob);
+      ctx.fillText(walkFrame, cp.x, cp.y - 5 + bob);
       ctx.shadowBlur = 0;
+
+      // Hacker name label under character
+      if (hackerName) {
+        ctx.font = 'bold 7px monospace';
+        ctx.fillStyle = '#00ff4188';
+        ctx.textBaseline = 'alphabetic';
+        ctx.fillText(hackerName, cp.x, cp.y + 16 + bob);
+      }
 
       // Blink indicator
       if (Math.floor(t / 18) % 2 === 0) {
@@ -299,7 +306,7 @@ export default function GameMap({ gameState, effect }) {
 
     animRef.current = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(animRef.current);
-  }, [pwned, scanned, unlocked, activeId]);
+  }, [pwned, scanned, unlocked, activeId, hackerName, playerEmoji]);
 
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative', background: '#050508', overflow: 'hidden' }}>
