@@ -10,7 +10,7 @@ const CHARACTERS = [
     specialty: 'Web & SQL Injection',
     bonus: '+20% XP sur exploit web',
     bio: 'Ancienne ingénieure NEXUS Corp reconvertie. Connaît le réseau de l\'intérieur.',
-    startingHint: 'Le Web Server tourne Apache 2.4.49 — une CVE critique existe.',
+    startingHint: "L'Active Directory tourne Apache 2.4.49 — une CVE critique existe.",
     xpMultiplier: { sqlmap: 1.2, hydra: 1.0, nmap: 1.0 },
   },
   {

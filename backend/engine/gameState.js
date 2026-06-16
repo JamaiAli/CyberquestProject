@@ -19,6 +19,10 @@ function createInitialState(sessionId) {
     createdAt: Date.now(),
     listenerPort: null,
     hydraDone: false,
+    asrepDone: false,
+    svcBackupCreds: false,
+    smbShareAccessed: false,
+    ntdsDumped: false,
   };
 }
 

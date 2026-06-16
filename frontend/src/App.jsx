@@ -30,6 +30,10 @@ function makeInitialState(sessionId) {
     gameWon: false,
     listenerPort: null,
     hydraDone: false,
+    asrepDone: false,
+    svcBackupCreds: false,
+    smbShareAccessed: false,
+    ntdsDumped: false,
   };
 }
 
@@ -107,7 +111,7 @@ export default function App() {
         if (unlocked.includes(closestId)) {
           oracleSentRef.current.add(closestId);
           const connectHints = {
-            webserver:  `nc -lvnp 4444  →  python3 cve-2021-41773.py ${pos.ip} 4444`,
+            webserver:  `nmap -sC -sV -p- ${pos.ip}  →  dnsrecon -d corp.local -n ${pos.ip} -t std`,
             mailserver: `hydra -l admin -P rockyou.txt ${pos.ip} ssh  →  ssh admin@${pos.ip}`,
             dbserver:   `mysql -h ${pos.ip} -u db_user -pStr0ngP@ss`,
             dc:         `evil-winrm -i ${pos.ip} -u Administrator -H <ntlm_hash>`,
