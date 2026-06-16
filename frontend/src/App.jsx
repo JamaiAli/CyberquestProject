@@ -11,7 +11,7 @@ import GameOver from './components/GameOver';
 import Victory from './components/Victory';
 import { GHOST_SPAWN, NETWORK_MAP, MACHINE_POSITIONS, TILE, MAP_ROWS, MAP_COLS } from './map.js';
 
-const TOTAL_SECONDS = 360; // 6 minutes
+const TOTAL_SECONDS = 600; // 10 minutes
 
 function makeSessionId() { return crypto.randomUUID(); }
 
@@ -28,6 +28,8 @@ function makeInitialState(sessionId) {
     rootObtained: false,
     score: 0,
     gameWon: false,
+    listenerPort: null,
+    hydraDone: false,
   };
 }
 
@@ -104,8 +106,15 @@ export default function App() {
         const unlocked = gameStateRef.current.unlockedMachines || [];
         if (unlocked.includes(closestId)) {
           oracleSentRef.current.add(closestId);
+          const connectHints = {
+            webserver:  `nc -lvnp 4444  →  python3 cve-2021-41773.py ${pos.ip} 4444`,
+            mailserver: `hydra -l admin -P rockyou.txt ${pos.ip} ssh  →  ssh admin@${pos.ip}`,
+            dbserver:   `mysql -h ${pos.ip} -u db_user -pStr0ngP@ss`,
+            dc:         `evil-winrm -i ${pos.ip} -u Administrator -H <ntlm_hash>`,
+          };
+          const hint = connectHints[closestId] || `connect ${pos.ip}`;
           writeToTermRef.current?.(
-            `\x1b[33m[ORACLE] ${pos.name} détectée. Tape : cd ${pos.ip}\x1b[0m`
+            `\x1b[33m[ORACLE] ${pos.name} détectée.\x1b[0m\n\x1b[36m  → ${hint}\x1b[0m`
           );
         } else if (!oracleSentRef.current.has(closestId + '_locked')) {
           oracleSentRef.current.add(closestId + '_locked');

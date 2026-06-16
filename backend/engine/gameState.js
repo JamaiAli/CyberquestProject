@@ -17,6 +17,8 @@ function createInitialState(sessionId) {
     score: 0,
     startTime: Date.now(),
     createdAt: Date.now(),
+    listenerPort: null,
+    hydraDone: false,
   };
 }
 

@@ -310,7 +310,13 @@ function drawGhost(ctx, pos, isMoving, emoji, name, t) {
 
 function drawBubble(ctx, charPos, machinePos, isLocked) {
   const { x, y } = charPos;
-  const txt = isLocked ? '🔒 Prérequis manquants' : `▶ cd ${machinePos.ip}`;
+  const connectCmds = {
+    webserver:  `python3 exploit.py ${machinePos.ip}`,
+    mailserver: `ssh admin@${machinePos.ip}`,
+    dbserver:   `mysql -h ${machinePos.ip} -u db_user`,
+    dc:         `evil-winrm -i ${machinePos.ip}`,
+  };
+  const txt = isLocked ? '🔒 Prérequis manquants' : `▶ ${connectCmds[machinePos.id] || machinePos.ip}`;
   const color = isLocked ? '#ff4444' : '#ffcc00';
   ctx.font = '9px monospace';
   const tw = ctx.measureText(txt).width + 18;

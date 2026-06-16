@@ -167,9 +167,10 @@ export default function PedaPanel({ info, lastCommand, gameState }) {
           <div style={{ ...s.section, flexShrink: 0 }}>
             <div style={{ ...s.label, color: '#00aaff' }}>📍 GUIDE DE DÉMARRAGE</div>
             {[
-              { n: '1', cmd: 'nmap 192.168.1.0/24',    desc: 'Découvrir les machines' },
-              { n: '2', cmd: 'nmap -sV 192.168.1.10',  desc: 'Scanner Web Server' },
-              { n: '3', cmd: 'cd 192.168.1.10',         desc: 'Entrer dans la salle' },
+              { n: '1', cmd: 'nmap 192.168.1.0/24',                   desc: 'Découvrir les machines' },
+              { n: '2', cmd: 'nmap -sV 192.168.1.10',              desc: 'Scanner le Web Server' },
+              { n: '3', cmd: 'nc -lvnp 4444',                       desc: 'Préparer un listener' },
+              { n: '4', cmd: 'python3 cve-2021-41773.py 192.168.1.10 4444', desc: 'Lancer le reverse shell' },
             ].map(t => (
               <div key={t.n} style={{ marginBottom: '7px' }}>
                 <div style={{ color: '#333', fontSize: '9px', marginBottom: '2px' }}>
