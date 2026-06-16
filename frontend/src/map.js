@@ -37,7 +37,7 @@ export const GHOST_SPAWN = { col: 9, row: 3 };
 // col/row = top-left tile, w/h in tiles
 export const MACHINE_POSITIONS = {
   kali:       { col: 8,  row: 1,  w: 4, h: 2, name: 'Kali Linux',        icon: '💻', ip: '10.0.0.1',     type: 'hub' },
-  webserver:  { col: 1,  row: 6,  w: 4, h: 2, name: 'Web Server',        icon: '🌐', ip: '192.168.1.10',  type: 'server', difficulty: 'easy' },
+  webserver:  { col: 1,  row: 6,  w: 4, h: 2, name: 'Active Directory',   icon: '🏢', ip: '192.168.1.10',  type: 'server', difficulty: 'easy' },
   mailserver: { col: 15, row: 6,  w: 4, h: 2, name: 'Mail Server',       icon: '📧', ip: '192.168.1.20',  type: 'server', difficulty: 'medium' },
   dbserver:   { col: 8,  row: 9,  w: 4, h: 2, name: 'DB Server',         icon: '🗄',  ip: '192.168.1.30',  type: 'server', difficulty: 'medium' },
   dc:         { col: 8,  row: 12, w: 4, h: 2, name: 'Domain Controller', icon: '👑', ip: '192.168.1.100', type: 'boss',   difficulty: 'hard' },

@@ -30,7 +30,7 @@ const PHASE_INFO = [
 ];
 
 const MACHINE_HINTS = {
-  webserver:  ['Apache 2.4.49 — version vulnérable (CVE-2021-41773)', 'Page /admin cachée → essaie dirb', 'SQLi sur /login.php?id= → sqlmap'],
+  webserver:  ['Ports 88+389+3268 = signature Domain Controller', 'nmap -sC -sV -p- 192.168.1.10 → révèle FQDN dc.corp.local', 'dnsrecon -d corp.local -n 192.168.1.10 -t std → SRV records Kerberos/LDAP'],
   mailserver: ['Bannière SMTP révèle la version Postfix', 'VRFY activée → énumération users', 'Brute-force SSH : admin:letmein'],
   dbserver:   ['Accès via pivot depuis webserver/mailserver', 'Credentials DB trouvés dans les emails', 'MySQL FILE privilege → lecture /etc/shadow'],
   dc:         ['SMB signing désactivé → Pass-the-Hash', 'Kerberoasting : SPN MSSQLSvc disponible', 'Creds DB permettent le pivot'],
@@ -167,10 +167,10 @@ export default function PedaPanel({ info, lastCommand, gameState }) {
           <div style={{ ...s.section, flexShrink: 0 }}>
             <div style={{ ...s.label, color: '#00aaff' }}>📍 GUIDE DE DÉMARRAGE</div>
             {[
-              { n: '1', cmd: 'nmap 192.168.1.0/24',                   desc: 'Découvrir les machines' },
-              { n: '2', cmd: 'nmap -sV 192.168.1.10',              desc: 'Scanner le Web Server' },
-              { n: '3', cmd: 'nc -lvnp 4444',                       desc: 'Préparer un listener' },
-              { n: '4', cmd: 'python3 cve-2021-41773.py 192.168.1.10 4444', desc: 'Lancer le reverse shell' },
+              { n: '1', cmd: 'nmap 192.168.1.0/24',                        desc: 'Découvrir les machines' },
+              { n: '2', cmd: 'nmap -sC -sV -p- 192.168.1.10',           desc: 'Scan complet NSE — signature DC' },
+              { n: '3', cmd: 'dnsrecon -d corp.local -n 192.168.1.10 -t std', desc: 'Énumérer les DNS SRV records' },
+              { n: '4', cmd: 'enum4linux -a 192.168.1.10',               desc: 'Utilisateurs & groupes AD' },
             ].map(t => (
               <div key={t.n} style={{ marginBottom: '7px' }}>
                 <div style={{ color: '#333', fontSize: '9px', marginBottom: '2px' }}>
@@ -203,7 +203,7 @@ export default function PedaPanel({ info, lastCommand, gameState }) {
       <div style={{ padding: '10px 12px', marginTop: 'auto', borderTop: '1px solid #0e0e18', flexShrink: 0 }}>
         <div style={{ ...s.label, color: '#1a1a2a' }}>MACHINES</div>
         {[
-          { id: 'webserver',  name: 'Web Server',        ip: '.10' },
+          { id: 'webserver',  name: 'Active Directory',   ip: '.10' },
           { id: 'mailserver', name: 'Mail Server',       ip: '.20' },
           { id: 'dbserver',   name: 'DB Server',         ip: '.30' },
           { id: 'dc',         name: 'Domain Controller', ip: '.100' },
