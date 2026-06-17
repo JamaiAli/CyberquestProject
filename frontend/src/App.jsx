@@ -6,6 +6,8 @@ import PedaPanel from './components/PedaPanel';
 import MachineView from './components/MachineView';
 import Scoreboard from './components/Scoreboard';
 import CharacterSelect from './components/CharacterSelect';
+import LevelMap from './components/LevelMap';
+import LevelView from './components/LevelView';
 import IntroScreen from './components/IntroScreen';
 import GameOver from './components/GameOver';
 import Victory from './components/Victory';
@@ -50,8 +52,14 @@ export default function App() {
   const [timeLeft, setTimeLeft]   = useState(TOTAL_SECONDS);
   const [elapsed, setElapsed]     = useState(0);
 
+  const [nearbyMachine, setNearbyMachine] = useState(null);
+  const [showLevelMap, setShowLevelMap]   = useState(false);
+  const [activeLevel, setActiveLevel]     = useState(null); // 1..4 web-app level open
+  const [levelsDone, setLevelsDone]       = useState([]);
+
   const timerRef        = useRef(null);
-  const writeToTermRef  = useRef(null); // set by Terminal via onWriteRef
+  const writeToTermRef  = useRef(null);
+  const runTerminalRef  = useRef(null);
   const timerWarnSent   = useRef({ at120: false, at60: false });
   const ghostTileRef    = useRef({ ...GHOST_SPAWN });
   const nearbyMachineRef = useRef(null);
@@ -103,6 +111,7 @@ export default function App() {
 
       const prevNearby = nearbyMachineRef.current;
       nearbyMachineRef.current = closestId;
+      setNearbyMachine(closestId);
 
       // ORACLE message on first approach to each unlocked machine
       if (closestId && closestId !== 'kali' && closestId !== prevNearby && !oracleSentRef.current.has(closestId)) {
@@ -324,8 +333,36 @@ export default function App() {
 
       {/* Row 3: Terminal full width */}
       <div style={{ gridColumn: '1 / -1' }}>
-        <Terminal onCommand={handleCommand} gameState={gameState} onWriteRef={writeToTermRef} />
+        <Terminal onCommand={handleCommand} gameState={gameState} onWriteRef={writeToTermRef} onRunRef={runTerminalRef} />
       </div>
+
+      {/* Bouton "Commencer le test d'intrusion" quand on approche la Web Application */}
+      {nearbyMachine === 'mailserver' && mode === 'NETWORK' && (
+        <div style={{
+          position: 'fixed', bottom: '230px', left: '50%', transform: 'translateX(-50%)',
+          zIndex: 600,
+        }}>
+          <button
+            onClick={() => setShowLevelMap(true)}
+            style={{
+              background: 'linear-gradient(135deg, #0a1a0a, #0d2a0d)',
+              border: '1px solid #00ff41',
+              color: '#00ff41',
+              fontFamily: '"Fira Code", monospace',
+              fontSize: '13px',
+              fontWeight: 'bold',
+              padding: '10px 24px',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              boxShadow: '0 0 20px #00ff4155, 0 0 40px #00ff4122',
+              letterSpacing: '0.05em',
+              animation: 'pulse 1.8s ease-in-out infinite',
+            }}
+          >
+            ▶ Commencer le test d'intrusion
+          </button>
+        </div>
+      )}
 
       {/* Toast notification */}
       {notification && (
@@ -339,6 +376,32 @@ export default function App() {
         }}>
           {notification.msg}
         </div>
+      )}
+
+      {showLevelMap && (
+        <LevelMap
+          currentLevel={Math.min(levelsDone.length + 1, 6)}
+          completed={levelsDone}
+          onClose={() => setShowLevelMap(false)}
+          onSelectLevel={(n) => {
+            if (n <= 6) setActiveLevel(n);
+          }}
+        />
+      )}
+
+      {activeLevel && (
+        <LevelView
+          key={activeLevel}
+          level={activeLevel}
+          onClose={() => setActiveLevel(null)}
+          onComplete={(n) => {
+            setLevelsDone(prev => prev.includes(n) ? prev : [...prev, n]);
+            showNotif(`🚩 Niveau ${n} validé !`, '#00ff41');
+          }}
+          onAdvance={(n) => {
+            setActiveLevel(n < 6 ? n + 1 : null);
+          }}
+        />
       )}
 
       <Scoreboard visible={showScoreboard} onClose={() => setShowScoreboard(false)} />

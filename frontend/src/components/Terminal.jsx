@@ -17,7 +17,7 @@ function buildPrompt(mode, machine) {
   return `\x1b[36mattacker@kali\x1b[0m:\x1b[34m~/pentest\x1b[0m$ `;
 }
 
-export default function Terminal({ onCommand, gameState, onWriteRef }) {
+export default function Terminal({ onCommand, gameState, onWriteRef, onRunRef }) {
   const containerRef = useRef(null);
   const termRef      = useRef(null);
   const inputRef     = useRef('');
@@ -84,6 +84,24 @@ export default function Terminal({ onCommand, gameState, onWriteRef }) {
         if (!termRef.current) return;
         text.split('\n').forEach(line => termRef.current.writeln(line));
         termRef.current.write(buildPrompt(modeRef.current, machineRef.current));
+      };
+    }
+
+    // Expose run function to inject a command programmatically (e.g. from a button)
+    if (onRunRef) {
+      onRunRef.current = async (cmdText) => {
+        const t = termRef.current;
+        if (!t) return;
+        t.writeln('');
+        t.writeln(`\x1b[33m${cmdText}\x1b[0m`);
+        try {
+          const output = await onCommand(cmdText);
+          if (output === '\x1b[2J\x1b[H') { t.clear(); }
+          else if (output) { output.split('\n').forEach(line => t.writeln(line)); }
+        } catch (_) {
+          t.writeln('\x1b[31m[ERROR] Backend non disponible.\x1b[0m');
+        }
+        t.write(buildPrompt(modeRef.current, machineRef.current));
       };
     }
 
