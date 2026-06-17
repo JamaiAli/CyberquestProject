@@ -57,6 +57,7 @@ export default function App() {
   const [showLevelMap, setShowLevelMap]   = useState(false);
   const [activeLevel, setActiveLevel]     = useState(null); // 1..4 web-app level open
   const [levelsDone, setLevelsDone]       = useState([]);
+  const [adTestStarted, setAdTestStarted] = useState(false);
 
   const timerRef        = useRef(null);
   const writeToTermRef  = useRef(null);
@@ -346,6 +347,47 @@ export default function App() {
       <div style={{ gridColumn: '1 / -1' }}>
         <Terminal onCommand={handleCommand} gameState={gameState} onWriteRef={writeToTermRef} onRunRef={runTerminalRef} />
       </div>
+
+      {/* Bouton "Commencer le test d'intrusion" quand on approche Active Directory */}
+      {nearbyMachine === 'webserver' && mode === 'NETWORK' && !adTestStarted && (
+        <div style={{
+          position: 'fixed', bottom: '230px', left: '50%', transform: 'translateX(-50%)',
+          zIndex: 600,
+        }}>
+          <button
+            onClick={() => {
+              setAdTestStarted(true);
+              writeToTermRef.current?.(
+                '\x1b[36m╔══════════════════════════════════════════════════╗\x1b[0m\n' +
+                '\x1b[36m║      TEST D\'INTRUSION — ACTIVE DIRECTORY         ║\x1b[0m\n' +
+                '\x1b[36m╚══════════════════════════════════════════════════╝\x1b[0m\n' +
+                '\x1b[33m[ORACLE] Cible : Active Directory  —  192.168.1.10\x1b[0m\n' +
+                '\x1b[37mÉtape 1 → Reconnaissance réseau :\x1b[0m\n' +
+                '\x1b[32m  nmap -sC -sV -p- 192.168.1.10\x1b[0m\n' +
+                '\x1b[37mÉtape 2 → Énumération DNS :\x1b[0m\n' +
+                '\x1b[32m  dnsrecon -d corp.local -n 192.168.1.10 -t std\x1b[0m'
+              );
+              showNotif('Test d\'intrusion AD démarré !', '#00aaff');
+            }}
+            style={{
+              background: 'linear-gradient(135deg, #0a0f1a, #0d1a2a)',
+              border: '1px solid #00aaff',
+              color: '#00aaff',
+              fontFamily: '"Fira Code", monospace',
+              fontSize: '13px',
+              fontWeight: 'bold',
+              padding: '10px 24px',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              boxShadow: '0 0 20px #00aaff55, 0 0 40px #00aaff22',
+              letterSpacing: '0.05em',
+              animation: 'pulse 1.8s ease-in-out infinite',
+            }}
+          >
+            ▶ Commencer le test d'intrusion
+          </button>
+        </div>
+      )}
 
       {/* Bouton "Commencer le test d'intrusion" quand on approche la Web Application */}
       {nearbyMachine === 'mailserver' && mode === 'NETWORK' && (
