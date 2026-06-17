@@ -85,6 +85,16 @@ export default function App() {
 
     const handler = (e) => {
       if (!ARROWS.includes(e.key)) return;
+
+      // Prevent map movement if the user is typing in an input, textarea (xterm), etc.
+      if (
+        e.target.tagName === 'INPUT' ||
+        e.target.tagName === 'TEXTAREA' ||
+        e.target.isContentEditable
+      ) {
+        return;
+      }
+
       e.preventDefault();
 
       const { col, row } = ghostTileRef.current;
