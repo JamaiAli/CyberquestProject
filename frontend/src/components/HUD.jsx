@@ -6,8 +6,8 @@ function formatTime(s) {
   return `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
 }
 
-export default function HUD({ gameState, mode, player, timeLeft }) {
-  const { xp = 0, level = 1, pwnedMachines = [], currentMachine = null } = gameState;
+export default function HUD({ gameState, mode, player, timeLeft, onLogout, onShowScores }) {
+  const { xp = 0, level = 1, pwnedMachines = [], currentMachine = null, sessionId = '' } = gameState;
   const xpPct   = xp % 100;
   const pwned   = pwnedMachines.length;
   const urgent  = timeLeft < 120;
@@ -41,7 +41,7 @@ export default function HUD({ gameState, mode, player, timeLeft }) {
         <span style={{ fontSize: '14px' }}>{player?.emoji || '🧑‍💻'}</span>
         <div>
           <div style={{ color: '#00ff41', fontSize: '11px', fontWeight: 'bold', lineHeight: 1.2 }}>
-            {player?.hackerName || 'GHOST'}
+            {player?.hackerName || 'GHOST'} <span style={{ color: '#555', fontSize: '9px', fontWeight: 'normal' }}>({sessionId})</span>
           </div>
           <div style={{ color: '#2a2a2a', fontSize: '9px' }}>{player?.role || 'Hacker'}</div>
         </div>
@@ -117,6 +117,34 @@ export default function HUD({ gameState, mode, player, timeLeft }) {
         }}>
           ⏱ {formatTime(timeLeft)}
         </span>
+      </div>
+
+      {/* Actions (Scores et Déconnexion) intégrés au HUD pour éviter le débordement de flex */}
+      <div style={{ display: 'flex', gap: '8px', flexShrink: 0, paddingLeft: '6px' }}>
+        {onShowScores && (
+          <button onClick={onShowScores} style={{
+            background: 'transparent', border: '1px solid #1a3a20',
+            color: '#00ff41', fontFamily: 'monospace', fontSize: '10px',
+            cursor: 'pointer', padding: '4px 10px', borderRadius: '3px',
+          }}
+            onMouseEnter={e => { e.target.style.borderColor = '#00ff41'; e.target.style.textShadow = '0 0 5px #00ff41'; }}
+            onMouseLeave={e => { e.target.style.borderColor = '#1a3a20'; e.target.style.textShadow = 'none'; }}
+          >
+            🏆 Scores
+          </button>
+        )}
+        {onLogout && (
+          <button onClick={onLogout} style={{
+            background: 'transparent', border: '1px solid #4a2626',
+            color: '#aa5555', fontFamily: 'monospace', fontSize: '10px',
+            cursor: 'pointer', padding: '4px 10px', borderRadius: '3px',
+          }}
+            onMouseEnter={e => { e.target.style.color = '#ff3333'; e.target.style.borderColor = '#ff3333'; }}
+            onMouseLeave={e => { e.target.style.color = '#aa5555'; e.target.style.borderColor = '#4a2626'; }}
+          >
+            ❌ Déconnexion
+          </button>
+        )}
       </div>
     </div>
   );

@@ -11,6 +11,7 @@ import LevelView from './components/LevelView';
 import IntroScreen from './components/IntroScreen';
 import GameOver from './components/GameOver';
 import Victory from './components/Victory';
+import AuthForm from './components/AuthForm';
 import { GHOST_SPAWN, NETWORK_MAP, MACHINE_POSITIONS, TILE, MAP_ROWS, MAP_COLS } from './map.js';
 import { MAX_LEVEL } from './levels/webLevels';
 
@@ -41,10 +42,13 @@ function makeInitialState(sessionId) {
 }
 
 export default function App() {
+  const [accessToken, setAccessToken] = useState(null);
+  const [user, setUser]               = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [screen, setScreen]       = useState('select'); // 'select' | 'intro' | 'game' | 'gameover' | 'victory'
   const [player, setPlayer]       = useState(null);
-  const [sessionId, setSessionId] = useState(() => makeSessionId());
-  const [gameState, setGameState] = useState(() => makeInitialState(sessionId));
+  const [sessionId, setSessionId] = useState('');
+  const [gameState, setGameState] = useState(() => makeInitialState(''));
   const [lastCommand, setLastCommand] = useState(null);
   const [pedaInfo, setPedaInfo]   = useState(null);
   const [mapEffect, setMapEffect] = useState(null);
@@ -67,6 +71,69 @@ export default function App() {
   const nearbyMachineRef = useRef(null);
   const oracleSentRef   = useRef(new Set());
   const gameStateRef    = useRef(gameState);
+
+  const handleLogoutLocal = useCallback(() => {
+    setAccessToken(null);
+    setUser(null);
+    setSessionId('');
+    setGameState(makeInitialState(''));
+    setScreen('select');
+    setPlayer(null);
+  }, []);
+
+  // 1. Silent Refresh au démarrage
+  useEffect(() => {
+    const silentRefresh = async () => {
+      try {
+        const res = await fetch('/api/auth/refresh', { method: 'POST' });
+        if (res.ok) {
+          const data = await res.json();
+          setAccessToken(data.accessToken);
+          setUser(data.username);
+          setSessionId(data.username);
+
+          // Charge la progression du joueur
+          const stateRes = await fetch('/api/state', {
+            headers: { 'Authorization': `Bearer ${data.accessToken}` }
+          });
+          if (stateRes.ok) {
+            const stateData = await stateRes.json();
+            if (stateData) {
+              setGameState(stateData);
+              if (stateData.pwnedMachines && stateData.pwnedMachines.length > 0) {
+                setScreen('game'); // Passe directement au jeu si partie en cours
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Silent refresh failed:', err);
+      } finally {
+        setAuthLoading(false);
+      }
+    };
+    silentRefresh();
+  }, []);
+
+  // 2. Refresh automatique de l'Access Token (toutes les 13 minutes)
+  useEffect(() => {
+    if (!accessToken) return;
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch('/api/auth/refresh', { method: 'POST' });
+        if (res.ok) {
+          const data = await res.json();
+          setAccessToken(data.accessToken);
+          setUser(data.username);
+        } else {
+          handleLogoutLocal();
+        }
+      } catch (e) {
+        console.error('Auto refresh failed:', e);
+      }
+    }, 13 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [accessToken, handleLogoutLocal]);
 
   // Keep ref in sync so keydown handler always reads latest state
   useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
@@ -214,8 +281,11 @@ export default function App() {
     try {
       const res = await fetch('/api/command', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ command, sessionId }),
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({ command }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const result = await res.json();
@@ -248,17 +318,50 @@ export default function App() {
     } catch (err) {
       return '\x1b[31m[ERREUR] Backend non disponible. Lance: node backend/server.js\x1b[0m';
     }
-  }, [sessionId]);
+  }, [accessToken]);
 
   const handleRestart = () => {
-    const newId = makeSessionId();
-    setSessionId(newId);
-    setGameState(makeInitialState(newId));
+    setGameState(makeInitialState(user));
     setTimeLeft(TOTAL_SECONDS);
     setElapsed(0);
     setPlayer(null);
     setScreen('select');
   };
+
+  const handleLoginSuccess = useCallback(async (token, username) => {
+    setAccessToken(token);
+    setUser(username);
+    setSessionId(username);
+
+    // Récupère la progression existante de l'utilisateur
+    try {
+      const stateRes = await fetch('/api/state', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (stateRes.ok) {
+        const stateData = await stateRes.json();
+        if (stateData) {
+          setGameState(stateData);
+          setScreen(stateData.pwnedMachines?.length > 0 ? 'game' : 'select');
+          return;
+        }
+      }
+    } catch (e) {
+      console.error('Error fetching game state:', e);
+    }
+
+    setGameState(makeInitialState(username));
+    setScreen('select');
+  }, []);
+
+  const handleLogout = useCallback(async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch (e) {
+      console.error('Logout failed:', e);
+    }
+    handleLogoutLocal();
+  }, [handleLogoutLocal]);
 
   const handleCharSelect = (selectedPlayer) => {
     setPlayer(selectedPlayer);
@@ -267,8 +370,24 @@ export default function App() {
 
   // ── Screens ─────────────────────────────────────────────────────────────────
 
+  if (authLoading) {
+    return (
+      <div style={{
+        display: 'flex', height: '100vh', width: '100vw',
+        background: '#030305', alignItems: 'center', justifyContent: 'center',
+        color: '#00ff41', fontFamily: 'monospace', fontSize: '13px'
+      }}>
+        [ INITIALISATION DE LA SESSION CYBERQUEST... ]
+      </div>
+    );
+  }
+
+  if (!accessToken) {
+    return <AuthForm onLoginSuccess={handleLoginSuccess} />;
+  }
+
   if (screen === 'select') {
-    return <CharacterSelect onSelect={handleCharSelect} />;
+    return <CharacterSelect onSelect={handleCharSelect} onLogout={handleLogout} />;
   }
 
   if (screen === 'intro') {
@@ -276,6 +395,7 @@ export default function App() {
       <IntroScreen
         hackerName={player?.hackerName || 'GHOST'}
         onDone={() => setScreen('game')}
+        onLogout={handleLogout}
       />
     );
   }
@@ -307,18 +427,14 @@ export default function App() {
     }}>
       {/* Row 1: HUD full width */}
       <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center' }}>
-        <HUD gameState={gameState} mode={mode} player={player} timeLeft={timeLeft} />
-        <button onClick={() => setShowScoreboard(true)} style={{
-          marginLeft: 'auto', marginRight: '10px', flexShrink: 0,
-          background: 'transparent', border: '1px solid #1a1a2a',
-          color: '#333', fontFamily: 'monospace', fontSize: '10px',
-          cursor: 'pointer', padding: '4px 10px', borderRadius: '3px',
-        }}
-          onMouseEnter={e => { e.target.style.color = '#00ff41'; e.target.style.borderColor = '#00ff41'; }}
-          onMouseLeave={e => { e.target.style.color = '#333'; e.target.style.borderColor = '#1a1a2a'; }}
-        >
-          🏆 Scores
-        </button>
+        <HUD 
+          gameState={gameState} 
+          mode={mode} 
+          player={player} 
+          timeLeft={timeLeft} 
+          onLogout={handleLogout} 
+          onShowScores={() => setShowScoreboard(true)} 
+        />
       </div>
 
       {/* Row 2 Left: Room Map */}
@@ -447,6 +563,10 @@ export default function App() {
           key={activeLevel}
           level={activeLevel}
           onClose={() => setActiveLevel(null)}
+          onLogout={() => {
+            setActiveLevel(null);
+            handleLogout();
+          }}
           onComplete={(n) => {
             setLevelsDone(prev => prev.includes(n) ? prev : [...prev, n]);
             showNotif(`🚩 Niveau ${n} validé !`, '#00ff41');

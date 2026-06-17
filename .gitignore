@@ -9,3 +9,5 @@ Thumbs.db
 server.log
 hash.txt
 rockyou.txt
+*.db
+cyberquest.db
