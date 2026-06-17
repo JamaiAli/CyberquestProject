@@ -247,8 +247,7 @@ function level1(cmd, lower, prog, ok, noop) {
         c('smb-os-discovery: Windows Server 2019 Standard 17763 | FQDN: dc.corp.local', '#00ff41'),
         c('[+] Signature DC confirmée : 88 (Kerberos) + 389 (LDAP) + 3268 (Global Catalog)', '#00ff41'),
         c('[+] Domaine AD : corp.local  |  SMB Signing REQUIRED → NTLM Relay bloqué', '#ffd93d'),
-      ], { nmapNet: true, nmapSV: true, nmapFull: true }, '✅ Signature DC identifiée !',
-        prog.nmapNet && prog.nmapSV);
+      ], { nmapNet: true, nmapSV: true, nmapFull: true }, '✅ Signature DC identifiée !', true);
     }
 
     return ok([
