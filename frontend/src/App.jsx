@@ -8,11 +8,14 @@ import Scoreboard from './components/Scoreboard';
 import CharacterSelect from './components/CharacterSelect';
 import LevelMap from './components/LevelMap';
 import LevelView from './components/LevelView';
+import ADLevelMap from './components/ADLevelMap';
+import ADLevelView from './components/ADLevelView';
 import IntroScreen from './components/IntroScreen';
 import GameOver from './components/GameOver';
 import Victory from './components/Victory';
 import { GHOST_SPAWN, NETWORK_MAP, MACHINE_POSITIONS, TILE, MAP_ROWS, MAP_COLS } from './map.js';
 import { MAX_LEVEL } from './levels/webLevels';
+import { MAX_AD_LEVEL } from './levels/adLevels';
 
 const TOTAL_SECONDS = 3600; // 60 minutes
 
@@ -57,7 +60,10 @@ export default function App() {
   const [showLevelMap, setShowLevelMap]   = useState(false);
   const [activeLevel, setActiveLevel]     = useState(null); // 1..4 web-app level open
   const [levelsDone, setLevelsDone]       = useState([]);
-  const [adTestStarted, setAdTestStarted] = useState(false);
+  const [adTestStarted, setAdTestStarted]   = useState(false);
+  const [showADLevelMap, setShowADLevelMap] = useState(false);
+  const [activeADLevel, setActiveADLevel]   = useState(null);
+  const [adLevelsDone, setAdLevelsDone]     = useState([]);
 
   const timerRef        = useRef(null);
   const writeToTermRef  = useRef(null);
@@ -357,17 +363,7 @@ export default function App() {
           <button
             onClick={() => {
               setAdTestStarted(true);
-              writeToTermRef.current?.(
-                '\x1b[36m╔══════════════════════════════════════════════════╗\x1b[0m\n' +
-                '\x1b[36m║      TEST D\'INTRUSION — ACTIVE DIRECTORY         ║\x1b[0m\n' +
-                '\x1b[36m╚══════════════════════════════════════════════════╝\x1b[0m\n' +
-                '\x1b[33m[ORACLE] Cible : Active Directory  —  192.168.1.10\x1b[0m\n' +
-                '\x1b[37mÉtape 1 → Reconnaissance réseau :\x1b[0m\n' +
-                '\x1b[32m  nmap -sC -sV -p- 192.168.1.10\x1b[0m\n' +
-                '\x1b[37mÉtape 2 → Énumération DNS :\x1b[0m\n' +
-                '\x1b[32m  dnsrecon -d corp.local -n 192.168.1.10 -t std\x1b[0m'
-              );
-              showNotif('Test d\'intrusion AD démarré !', '#00aaff');
+              setShowADLevelMap(true);
             }}
             style={{
               background: 'linear-gradient(135deg, #0a0f1a, #0d1a2a)',
@@ -453,6 +449,30 @@ export default function App() {
           }}
           onAdvance={(n) => {
             setActiveLevel(n < MAX_LEVEL ? n + 1 : null);
+          }}
+        />
+      )}
+
+      {showADLevelMap && (
+        <ADLevelMap
+          currentLevel={Math.min(adLevelsDone.length + 1, MAX_AD_LEVEL)}
+          completed={adLevelsDone}
+          onClose={() => setShowADLevelMap(false)}
+          onSelectLevel={(n) => { if (n <= MAX_AD_LEVEL) setActiveADLevel(n); }}
+        />
+      )}
+
+      {activeADLevel && (
+        <ADLevelView
+          key={activeADLevel}
+          level={activeADLevel}
+          onClose={() => setActiveADLevel(null)}
+          onComplete={(n) => {
+            setAdLevelsDone(prev => prev.includes(n) ? prev : [...prev, n]);
+            showNotif(`🚩 Étape AD ${n} validée !`, '#00aaff');
+          }}
+          onAdvance={(n) => {
+            setActiveADLevel(n < MAX_AD_LEVEL ? n + 1 : null);
           }}
         />
       )}
