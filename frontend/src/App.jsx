@@ -12,8 +12,9 @@ import IntroScreen from './components/IntroScreen';
 import GameOver from './components/GameOver';
 import Victory from './components/Victory';
 import { GHOST_SPAWN, NETWORK_MAP, MACHINE_POSITIONS, TILE, MAP_ROWS, MAP_COLS } from './map.js';
+import { MAX_LEVEL } from './levels/webLevels';
 
-const TOTAL_SECONDS = 600; // 10 minutes
+const TOTAL_SECONDS = 3600; // 60 minutes
 
 function makeSessionId() { return crypto.randomUUID(); }
 
@@ -390,11 +391,11 @@ export default function App() {
 
       {showLevelMap && (
         <LevelMap
-          currentLevel={Math.min(levelsDone.length + 1, 6)}
+          currentLevel={Math.min(levelsDone.length + 1, MAX_LEVEL)}
           completed={levelsDone}
           onClose={() => setShowLevelMap(false)}
           onSelectLevel={(n) => {
-            if (n <= 6) setActiveLevel(n);
+            if (n <= MAX_LEVEL) setActiveLevel(n);
           }}
         />
       )}
@@ -409,7 +410,7 @@ export default function App() {
             showNotif(`🚩 Niveau ${n} validé !`, '#00ff41');
           }}
           onAdvance={(n) => {
-            setActiveLevel(n < 6 ? n + 1 : null);
+            setActiveLevel(n < MAX_LEVEL ? n + 1 : null);
           }}
         />
       )}
