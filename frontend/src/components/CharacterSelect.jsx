@@ -37,7 +37,7 @@ const CHARACTERS = [
   },
 ];
 
-export default function CharacterSelect({ onSelect }) {
+export default function CharacterSelect({ onSelect, onLogout }) {
   const [selected, setSelected] = useState(null);
   const [name, setName] = useState('');
 
@@ -54,6 +54,40 @@ export default function CharacterSelect({ onSelect }) {
       fontFamily: '"Fira Code", monospace', overflow: 'hidden',
     }}>
       <MatrixRain opacity={0.08} />
+
+      {onLogout && (
+        <button
+          onClick={onLogout}
+          style={{
+            position: 'absolute',
+            top: '20px',
+            right: '20px',
+            zIndex: 100,
+            background: 'transparent',
+            border: '1px solid #ff333355',
+            color: '#ff3333bb',
+            fontFamily: 'monospace',
+            fontSize: '10px',
+            cursor: 'pointer',
+            padding: '6px 14px',
+            borderRadius: '3px',
+            letterSpacing: '1px',
+            transition: 'all 0.2s'
+          }}
+          onMouseEnter={e => {
+            e.target.style.color = '#ff3333';
+            e.target.style.borderColor = '#ff3333';
+            e.target.style.background = 'rgba(255, 51, 51, 0.05)';
+          }}
+          onMouseLeave={e => {
+            e.target.style.color = '#ff3333bb';
+            e.target.style.borderColor = '#ff333355';
+            e.target.style.background = 'transparent';
+          }}
+        >
+          ❌ DECONNEXION
+        </button>
+      )}
 
       <div style={{ position: 'relative', zIndex: 10, textAlign: 'center', maxWidth: '800px', padding: '0 20px' }}>
         {/* Title */}

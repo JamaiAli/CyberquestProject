@@ -3,7 +3,7 @@ import VulnBrowser from './VulnBrowser';
 import LevelTerminal from './LevelTerminal';
 import { getLevel, initialProg, objectives, hints, handleWeb, handleTerm, getNextStep } from '../levels/webLevels';
 
-export default function LevelView({ level: n, onClose, onComplete, onAdvance }) {
+export default function LevelView({ level: n, onClose, onLogout, onComplete, onAdvance }) {
   const level = getLevel(n);
   const [prog, setProg]     = useState(() => initialProg(n));
   const [webOut, setWebOut] = useState([]);
@@ -75,6 +75,13 @@ export default function LevelView({ level: n, onClose, onComplete, onAdvance }) 
           <span style={{ color: doneCount === objs.length ? '#00ff41' : '#5a8a6a', fontSize: 12 }}>
             {doneCount}/{objs.length} objectifs
           </span>
+          {onLogout && (
+            <button onClick={onLogout} style={logoutBtnStyle}
+              onMouseEnter={e => { e.currentTarget.style.color = '#ff3333'; e.currentTarget.style.borderColor = '#ff3333'; }}
+              onMouseLeave={e => { e.currentTarget.style.color = '#aa5555'; e.currentTarget.style.borderColor = '#4a2626'; }}>
+              ❌ Déconnexion
+            </button>
+          )}
           <button onClick={onClose} style={closeBtn}
             onMouseEnter={e => { e.currentTarget.style.color = '#00ff41'; e.currentTarget.style.borderColor = '#00ff41'; }}
             onMouseLeave={e => { e.currentTarget.style.color = '#5a8a6a'; e.currentTarget.style.borderColor = '#1a3a26'; }}>
@@ -170,4 +177,9 @@ const nextBtn = {
   color: '#00ff41', fontFamily: '"Fira Code",monospace', fontSize: 13, fontWeight: 'bold',
   cursor: 'pointer', padding: '8px 20px', borderRadius: 4, letterSpacing: '0.03em',
   boxShadow: '0 0 16px #00ff4144', animation: 'pulse 1.8s ease-in-out infinite',
+};
+
+const logoutBtnStyle = {
+  background: 'transparent', border: '1px solid #4a2626', color: '#aa5555',
+  fontFamily: 'monospace', fontSize: 12, cursor: 'pointer', padding: '5px 14px', borderRadius: 4,
 };
