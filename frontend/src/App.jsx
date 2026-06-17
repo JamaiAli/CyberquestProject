@@ -1,6 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import GameMap from './components/GameMap';
-import Terminal from './components/Terminal';
 import HUD from './components/HUD';
 import PedaPanel from './components/PedaPanel';
 import MachineView from './components/MachineView';
@@ -427,7 +426,7 @@ export default function App() {
     <div style={{
       display: 'grid',
       gridTemplateColumns: '1fr 270px',
-      gridTemplateRows: '50px 1fr 210px',
+      gridTemplateRows: '50px 1fr',
       height: '100vh', width: '100vw',
       background: '#050508', overflow: 'hidden',
     }}>
@@ -465,15 +464,10 @@ export default function App() {
         </div>
       </div>
 
-      {/* Row 3: Terminal full width */}
-      <div style={{ gridColumn: '1 / -1' }}>
-        <Terminal onCommand={handleCommand} gameState={gameState} onWriteRef={writeToTermRef} onRunRef={runTerminalRef} />
-      </div>
-
       {/* Bouton "Commencer le test d'intrusion" quand on approche Active Directory */}
       {nearbyMachine === 'webserver' && mode === 'NETWORK' && !adTestStarted && (
         <div style={{
-          position: 'fixed', bottom: '230px', left: '50%', transform: 'translateX(-50%)',
+          position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)',
           zIndex: 600,
         }}>
           <button
@@ -504,7 +498,7 @@ export default function App() {
       {/* Bouton "Commencer le test d'intrusion" quand on approche la Web Application */}
       {nearbyMachine === 'mailserver' && mode === 'NETWORK' && (
         <div style={{
-          position: 'fixed', bottom: '230px', left: '50%', transform: 'translateX(-50%)',
+          position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)',
           zIndex: 600,
         }}>
           <button
