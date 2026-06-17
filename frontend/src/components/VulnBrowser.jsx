@@ -209,6 +209,190 @@ function PageBody({ level, prog, output, webError, onSubmit }) {
     );
   }
 
+  // ── Level 7 : XSS Réfléchi ──
+  if (level.id === 'xss_r') {
+    return (
+      <>
+        <H>Vulnerability: Reflected XSS</H>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <span style={{ color: '#bbb', fontSize: 13 }}>What's your name?</span>
+          <input style={{ ...inputStyle, width: 360 }} value={val} placeholder="Enter your name"
+            onChange={e => setVal(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') onSubmit({ value: val }); }} />
+          <button style={btnStyle} onClick={() => onSubmit({ value: val })}>Submit</button>
+        </div>
+        <OutBox output={output} webError={webError} />
+      </>
+    );
+  }
+
+  // ── Level 8 : XSS Stocké ──
+  if (level.id === 'xss_s') {
+    const msgs = prog.messages || [];
+    return (
+      <>
+        <H>Vulnerability: Stored XSS</H>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 500, marginBottom: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <span style={{ width: 80, color: '#bbb', fontSize: 13 }}>Name:</span>
+            <input style={{ ...inputStyle, flex: 1 }} value={user} placeholder="Guest" maxLength={10}
+              onChange={e => setUser(e.target.value)} />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <span style={{ width: 80, color: '#bbb', fontSize: 13 }}>Message:</span>
+            <textarea style={{ ...inputStyle, flex: 1, minHeight: 60 }} value={val} placeholder="Hello!"
+              onChange={e => setVal(e.target.value)} />
+          </div>
+          <button style={{ ...btnStyle, alignSelf: 'flex-start', marginLeft: 80 }} 
+            onClick={() => onSubmit({ name: user || 'Guest', message: val })}>Sign Guestbook</button>
+        </div>
+        
+        <H>Guestbook Entries</H>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {msgs.map((m, i) => (
+            <div key={i} style={{ background: '#111', border: '1px solid #333', padding: 10, borderRadius: 4 }}>
+              <div style={{ fontWeight: 'bold', color: '#ffbd2e', marginBottom: 4, fontSize: 13 }}>{m.name}</div>
+              <div style={{ color: '#eee', fontSize: 13 }}>{m.msg}</div>
+            </div>
+          ))}
+        </div>
+        
+        <OutBox output={output} webError={webError} />
+      </>
+    );
+  }
+
+  // ── Level 9 : XSS DOM-based ──
+  if (level.id === 'xss_d') {
+    return (
+      <>
+        <H>Vulnerability: DOM Based XSS</H>
+        <p style={{ color: '#bbb', fontSize: 13, margin: '0 0 10px' }}>
+          La page utilise JavaScript pour lire l'URL et afficher la langue par défaut.
+        </p>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 20 }}>
+          <span style={{ color: '#bbb', fontSize: 13 }}>Select language:</span>
+          <select style={inputStyle} value="English" disabled>
+            <option>English</option>
+            <option>French</option>
+            <option>Spanish</option>
+            <option>German</option>
+          </select>
+        </div>
+        
+        <H>Simulation de l'URL</H>
+        <p style={{ color: '#bbb', fontSize: 13, margin: '0 0 10px' }}>
+          Modifie l'URL ci-dessous pour tester tes payloads (paramètre <code>?default=</code> ou fragment <code>#</code>).
+        </p>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <input style={{ ...inputStyle, width: '100%', color: '#7fbf9f' }} value={val} 
+            placeholder={level.url + "?default=English"}
+            onChange={e => setVal(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') onSubmit({ url: val }); }} />
+          <button style={btnStyle} onClick={() => onSubmit({ url: val })}>Aller</button>
+        </div>
+        <OutBox output={output} webError={webError} />
+      </>
+    );
+  }
+
+  // ── Level 10 : CSRF ──
+  if (level.id === 'csrf') {
+    return (
+      <>
+        <H>Vulnerability: Cross Site Request Forgery (CSRF)</H>
+        <p style={{ color: '#bbb', fontSize: 13, margin: '0 0 10px' }}>Change your admin password:</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 360, marginBottom: 20 }}>
+          <input style={inputStyle} type="password" value={pass} placeholder="New password" onChange={e => setPass(e.target.value)} />
+          <input style={inputStyle} type="password" value={user} placeholder="Confirm new password" onChange={e => setUser(e.target.value)} />
+          <button style={{ ...btnStyle, alignSelf: 'flex-start' }} onClick={() => onSubmit({ action: 'change', pass, conf: user })}>Change</button>
+        </div>
+        <H>Attacker Simulator (Inject HTML)</H>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <input style={{ ...inputStyle, width: '100%' }} value={val} placeholder='<img src="..." />'
+            onChange={e => setVal(e.target.value)} />
+          <button style={btnStyle} onClick={() => onSubmit({ action: 'exploit', payload: val })}>Test Exploit</button>
+        </div>
+        <OutBox output={output} webError={webError} />
+      </>
+    );
+  }
+
+  // ── Level 11 : Weak Session IDs ──
+  if (level.id === 'weak_id') {
+    return (
+      <>
+        <H>Vulnerability: Weak Session IDs</H>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 20 }}>
+          <button style={btnStyle} onClick={() => onSubmit({ action: 'generate' })}>Generate Session</button>
+        </div>
+        <H>Session Hijacking</H>
+        <p style={{ color: '#bbb', fontSize: 13, margin: '0 0 10px' }}>Devine la prochaine session qui sera attribuée :</p>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <span style={{ color: '#bbb', fontSize: 13 }}>dvwaSession=</span>
+          <input style={{ ...inputStyle, width: 200 }} value={val} placeholder="1005"
+            onChange={e => setVal(e.target.value)} />
+          <button style={btnStyle} onClick={() => onSubmit({ action: 'hijack', guess: val })}>Hijack</button>
+        </div>
+        <OutBox output={output} webError={webError} />
+      </>
+    );
+  }
+
+  // ── Level 12 : JavaScript Attacks ──
+  if (level.id === 'js_attack') {
+    return (
+      <>
+        <H>Vulnerability: JavaScript Attacks</H>
+        <p style={{ color: '#bbb', fontSize: 13, margin: '0 0 10px' }}>
+          Soumet le mot "success" pour obtenir la clé, mais tu dois fournir le bon token.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 360, marginBottom: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <span style={{ width: 80, color: '#bbb', fontSize: 13 }}>Phrase:</span>
+            <input style={{ ...inputStyle, flex: 1 }} value={user} placeholder="success" onChange={e => setUser(e.target.value)} />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <span style={{ width: 80, color: '#bbb', fontSize: 13 }}>Token:</span>
+            <input style={{ ...inputStyle, flex: 1 }} value={val} placeholder="md5(sseccus) ou d5...c4" onChange={e => setVal(e.target.value)} />
+          </div>
+          <button style={{ ...btnStyle, alignSelf: 'flex-start', marginLeft: 80 }} 
+            onClick={() => onSubmit({ action: 'submit', phrase: user, token: val, simulatedValid: true })}>Submit</button>
+        </div>
+        <OutBox output={output} webError={webError} />
+      </>
+    );
+  }
+
+  // ── Level 13 : Insecure CAPTCHA ──
+  if (level.id === 'captcha') {
+    return (
+      <>
+        <H>Vulnerability: Insecure CAPTCHA</H>
+        <p style={{ color: '#bbb', fontSize: 13, margin: '0 0 10px' }}>
+          Le changement de mot de passe nécessite une validation CAPTCHA (étape 2).
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 360, marginBottom: 20 }}>
+          <input style={inputStyle} type="password" value={pass} placeholder="New password" onChange={e => setPass(e.target.value)} />
+          <input style={inputStyle} type="password" value={user} placeholder="Confirm new password" onChange={e => setUser(e.target.value)} />
+          <button style={{ ...btnStyle, alignSelf: 'flex-start', background: '#555', cursor: 'not-allowed' }} disabled>Change (Require CAPTCHA)</button>
+        </div>
+        <H>HTTP Request Simulator</H>
+        <p style={{ color: '#bbb', fontSize: 13, margin: '0 0 10px' }}>
+          Simule l'envoi direct de la requête (comme avec Burp Suite) :
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <textarea style={{ ...inputStyle, minHeight: 80 }} value={val} 
+            placeholder="step=2&password_new=a&password_conf=a&passed_captcha=true"
+            onChange={e => setVal(e.target.value)} />
+          <button style={{ ...btnStyle, alignSelf: 'flex-start' }} 
+            onClick={() => onSubmit({ action: 'submit', payload: val })}>Send Request</button>
+        </div>
+        <OutBox output={output} webError={webError} />
+      </>
+    );
+  }
+
   // ── Level 3 & 4 : SQLi / Blind (User ID form) ──
   const blind = level.id === 'blind';
   return (
