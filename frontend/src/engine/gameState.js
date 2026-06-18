@@ -24,17 +24,22 @@ export function createInitialState(sessionId) {
   };
 }
 
+import { signData, verifyAndDecodeData } from './cryptoUtils.js';
+
 export function getGameState(sessionId) {
   const stored = localStorage.getItem(`gameState_${sessionId}`);
   if (stored) {
-    try {
-      return JSON.parse(stored);
-    } catch (e) {
-      console.error("Failed to parse game state from local storage", e);
+    const decoded = verifyAndDecodeData(stored);
+    if (decoded) {
+      try {
+        return JSON.parse(decoded);
+      } catch (e) {
+        console.error("Failed to parse game state", e);
+      }
     }
   }
   const newState = createInitialState(sessionId);
-  localStorage.setItem(`gameState_${sessionId}`, JSON.stringify(newState));
+  localStorage.setItem(`gameState_${sessionId}`, signData(JSON.stringify(newState)));
   return newState;
 }
 
@@ -47,38 +52,43 @@ export function updateGameState(sessionId, newState) {
     merged.maxHp = 100 + (newLevel - 1) * 20;
     merged.hp = Math.min(merged.hp + 20, merged.maxHp);
   }
-  localStorage.setItem(`gameState_${sessionId}`, JSON.stringify(merged));
+  localStorage.setItem(`gameState_${sessionId}`, signData(JSON.stringify(merged)));
   
-  updateScoreboard(sessionId, merged.xp, merged.level, merged.pwnedMachines.length);
+  addScore({
+    sessionId,
+    xp: merged.xp,
+    level: merged.level,
+    pwnedCount: merged.pwnedMachines.length
+  });
   return merged;
 }
 
-export function updateScoreboard(sessionId, xp, level, pwnedCount) {
-  const stored = localStorage.getItem('scoreboard') || '[]';
-  let board = [];
-  try {
-    board = JSON.parse(stored);
-  } catch (e) {
-    board = [];
+export function getScoreboard() {
+  const rawPayload = localStorage.getItem('scoreboard');
+  if (!rawPayload) return [];
+  const decodedStr = verifyAndDecodeData(rawPayload);
+  if (decodedStr) {
+    try {
+      return JSON.parse(decodedStr);
+    } catch(e) {
+      return [];
+    }
   }
-  const existing = board.find(s => s.sessionId === sessionId);
-  if (existing) {
-    existing.xp = Math.max(existing.xp, xp);
-    existing.level = Math.max(existing.level, level);
-    existing.pwnedCount = Math.max(existing.pwnedCount, pwnedCount);
-  } else {
-    board.push({ sessionId, xp, level, pwnedCount });
-  }
-  board.sort((a, b) => b.xp - a.xp);
-  board = board.slice(0, 10);
-  localStorage.setItem('scoreboard', JSON.stringify(board));
+  return [];
 }
 
-export function getScoreboard() {
-  const stored = localStorage.getItem('scoreboard') || '[]';
-  try {
-    return JSON.parse(stored);
-  } catch (e) {
-    return [];
+export function addScore(scoreEntry) {
+  const scores = getScoreboard();
+  const existingIndex = scores.findIndex(s => s.sessionId === scoreEntry.sessionId);
+  if (existingIndex >= 0) {
+    if (scoreEntry.xp > scores[existingIndex].xp) {
+      scores[existingIndex] = scoreEntry;
+    }
+  } else {
+    scores.push(scoreEntry);
   }
+  scores.sort((a, b) => b.xp - a.xp);
+  
+  const signedPayload = signData(JSON.stringify(scores));
+  localStorage.setItem('scoreboard', signedPayload);
 }

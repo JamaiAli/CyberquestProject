@@ -96,8 +96,19 @@ export default function App() {
     setPlayer({ hackerName: 'GHOST', role: 'Hacktiviste', emoji: '🧑‍💻' });
   }, []);
 
-  // 1. Charger l'état local au démarrage
+  // 1. Charger l'état local au démarrage et anti-debug
   useEffect(() => {
+    // Anti-debug basique (désactive clic droit et certaines touches F12, Ctrl+Shift+I)
+    const handleContextMenu = (e) => e.preventDefault();
+    const handleKeyDown = (e) => {
+      if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'C' || e.key === 'J'))) {
+        e.preventDefault();
+        alert('⚠️ ACCÈS NON AUTORISÉ : Débogueur bloqué par Sentinel.');
+      }
+    };
+    window.addEventListener('contextmenu', handleContextMenu);
+    window.addEventListener('keydown', handleKeyDown);
+
     const savedUser = localStorage.getItem('currentUser');
     if (savedUser) {
       setUser(savedUser);
@@ -111,6 +122,11 @@ export default function App() {
       }
     }
     setAuthLoading(false);
+
+    return () => {
+      window.removeEventListener('contextmenu', handleContextMenu);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, []);
 
   // Keep ref in sync so keydown handler always reads latest state

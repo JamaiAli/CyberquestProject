@@ -1,5 +1,7 @@
 // ─── Machine definitions ──────────────────────────────────────────────────────
 
+import { hashString } from './cryptoUtils.js';
+
 const MACHINES = [
   {
     id: 'webserver',
@@ -14,7 +16,7 @@ const MACHINES = [
     unlockedBy: [],
     connections: ['dbserver'],
     description: 'Active Directory — Domain Controller corp.local. Point d\'entrée principal.',
-    flag: 'CQ{4d_c0ntr0ll3r_pwn3d}',
+    flag: atob('Q1F7NGRfYzBudHIwbGwzcl9wd24zZH0='),
     hints: [
       'Ports 88 (Kerberos) + 389 (LDAP) + 3268 (GC) = signature Domain Controller',
       'nmap -sC -sV -p- 192.168.1.10 → scan complet NSE révèle le domaine corp.local',
@@ -34,7 +36,7 @@ const MACHINES = [
     unlockedBy: [],
     connections: ['dbserver'],
     description: 'Serveur mail Postfix. Contient des credentials de base de données.',
-    flag: 'CQ{m41l_s3rv3r_0wn3d}',
+    flag: atob('Q1F7bTQxbF9zM3J2M3JfMHduM2R9'),
     hints: [
       'VRFY activée → smtp-user-enum pour lister les comptes',
       'Aucun fail2ban → brute-force SSH possible avec hydra',
@@ -54,7 +56,7 @@ const MACHINES = [
     unlockedBy: ['webserver', 'mailserver'],
     connections: ['dc'],
     description: 'Base de données MySQL. Credentials trouvés sur les machines précédentes.',
-    flag: 'CQ{db_dump_g0t}',
+    flag: atob('Q1F7ZGJfZHVtcF9nMHR9'),
     hints: [
       'Credentials : db_user:Str0ngP@ss (trouvés en exploitant web ou mail)',
       'mysql -h 192.168.1.30 -u db_user -pStr0ngP@ss',
@@ -74,7 +76,7 @@ const MACHINES = [
     unlockedBy: ['dbserver'],
     connections: [],
     description: 'Active Directory. Hash NTLM extrait du DB Server.',
-    flag: 'CQ{d0m41n_4dm1n_pwn3d}',
+    flag: atob('Q1F7ZDBtNDFuXzRkbTFuX3B3bjNkfQ=='),
     hints: [
       'Hash Administrator NTLM extrait via secretsdump sur le DB Server',
       'evil-winrm -i 192.168.1.100 -u Administrator -H <ntlm_hash>',
@@ -120,10 +122,10 @@ const MACHINE_SCENARIOS = {
         'sudo -l : (root) NOPASSWD: /usr/bin/python3',
         'PrivEsc → sudo python3 -c \'import os; os.system("/bin/bash")\'',
         'root@web-server:~# whoami → root',
-        '\x1b[32m🚩 FLAG : CQ{w3b_s3rv3r_pwn3d}\x1b[0m',
+        '\x1b[32m🚩 FLAG : ' + atob('Q1F7dzNiX3MzcnYzcl9wd24zZH0=') + '\x1b[0m',
       ],
       unlocksMachines: ['dbserver'],
-      flag: 'CQ{w3b_s3rv3r_pwn3d}'
+      flag: atob('Q1F7dzNiX3MzcnYzcl9wd24zZH0=')
     }
   },
 
@@ -161,10 +163,10 @@ const MACHINE_SCENARIOS = {
         'Emails sensibles exfiltrés (RH, finances, credentials)',
         'Credentials DB confirmés : db_user:Str0ngP@ss',
         'Hash shadow admin : $6$... (cracké : letmein)',
-        '\x1b[32m🚩 FLAG : CQ{m41l_s3rv3r_0wn3d}\x1b[0m',
+        '\x1b[32m🚩 FLAG : ' + atob('Q1F7bTQxbF9zM3J2M3JfMHduM2R9') + '\x1b[0m',
       ],
       unlocksMachines: ['dbserver'],
-      flag: 'CQ{m41l_s3rv3r_0wn3d}'
+      flag: atob('Q1F7bTQxbF9zM3J2M3JfMHduM2R9')
     }
   },
 
@@ -206,10 +208,10 @@ const MACHINE_SCENARIOS = {
         'mysqldump corp_db → 450 enregistrements exfiltrés',
         'NTLM Hash : aad3b435b51404eeaad3b435b51404ee',
         'Pivot vers Domain Controller maintenant possible',
-        '\x1b[32m🚩 FLAG : CQ{db_dump_g0t}\x1b[0m',
+        '\x1b[32m🚩 FLAG : ' + atob('Q1F7ZGJfZHVtcF9nMHR9') + '\x1b[0m',
       ],
       unlocksMachines: ['dc'],
-      flag: 'CQ{db_dump_g0t}'
+      flag: atob('Q1F7ZGJfZHVtcF9nMHR9')
     }
   },
 
@@ -247,10 +249,10 @@ const MACHINE_SCENARIOS = {
         'Persistance : Golden Ticket créé (10 ans)',
         'DCSync : tous les hashes du domaine exfiltrés',
         'CORP.LOCAL → neutralisé. 47 comptes exposés.',
-        '\x1b[33m🏆 FLAG FINAL : CQ{d0m41n_4dm1n_pwn3d}\x1b[0m',
+        '\x1b[33m🏆 FLAG FINAL : ' + atob('Q1F7ZDBtNDFuXzRkbTFuX3B3bjNkfQ==') + '\x1b[0m',
       ],
       unlocksMachines: [],
-      flag: 'CQ{d0m41n_4dm1n_pwn3d}',
+      flag: atob('Q1F7ZDBtNDFuXzRkbTFuX3B3bjNkfQ=='),
       gameWin: true
     }
   }
@@ -2423,7 +2425,7 @@ function handleDCMachine(cmd, args, state, machine) {
         output: [
           `\x1b[33mC:\\Users\\svc_backup\\Desktop\\user.txt\x1b[0m`,
           '',
-          `\x1b[32mCQ{4d_c0ntr0ll3r_pwn3d}\x1b[0m`,
+          `\x1b[32m${atob('Q1F7NGRfYzBudHIwbGwzcl9wd24zZH0=')}\x1b[0m`,
           '',
           `\x1b[33m📚 Flag utilisateur : compte svc_backup compromis via AS-REP Roasting\x1b[0m`,
           `   svc_backup avait "Do not require Kerberos preauthentication" → hash cracké offline`,
