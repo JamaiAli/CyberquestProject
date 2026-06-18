@@ -14,11 +14,14 @@ Un jeu de simulation de pentest où tu incarnes un hacker infiltrant le réseau 
 > Version allégée 100% Frontend. Le moteur de jeu a été migré dans le navigateur (`frontend/src/engine/`) et l'état est sauvegardé via `localStorage`. Il n'y a plus de backend, plus de base de données.
 > *Utilité : Démonstrations rapides, salons, hackathons, ou pour jouer hors-ligne.*
 
-**Modifications spécifiques du PoC :**
-- Le dossier `backend` n'est plus utilisé.
-- Remplacement des requêtes API (`fetch`) par des exécutions de fonctions locales en ES Modules.
-- Le système d'authentification est simulé en local.
-- L'IA Sentinel valide un contournement si le joueur tape `bypass`.
+**Modifications spécifiques et Sécurisation du PoC :**
+- 🚫 **Sans Backend** : Le dossier `backend` n'est plus utilisé. La logique serveur (`commandEngine.js`) a été entièrement migrée dans le navigateur. L'état du jeu est sauvegardé localement via `localStorage`.
+- ⚡ **Optimisation des Performances (Vite)** : Mise en place d'un système de *Code Splitting* (Chunking) natif séparant le moteur React, le Terminal xterm.js et le code du jeu pour un chargement instantané.
+- 🛡️ **SAST & DAST (0 Vulnérabilités)** : L'application a été auditée et corrigée pour éliminer toutes les failles de dépendances. Le code React ne présente aucune faille XSS (`dangerouslySetInnerHTML` non utilisé).
+- 🔒 **Défense en Profondeur (CSP)** : Intégration d'une politique de sécurité stricte (*Content Security Policy*) bloquant l'exécution de tout script externe malveillant par le navigateur.
+- 🔐 **Sauvegardes Signées** : Les fichiers de sauvegarde locale du joueur sont hachés et signés cryptographiquement. Toute altération manuelle pour tricher corrompt la signature et détruit la sauvegarde.
+- 🕶️ **Obfuscation des Drapeaux** : Tous les "flags" (ex: `CQ{...}`) dans le code source ont été obfusqués et encodés en Base64 pour empêcher la triche par simple inspection du code.
+- 🛑 **Anti-Debugging Actif** : Bloqueur intégré désactivant le clic droit et les raccourcis vers les Outils de Développement (F12, Ctrl+Shift+I).
 
 ---
 
