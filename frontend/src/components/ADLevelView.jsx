@@ -77,7 +77,8 @@ export default function ADLevelView({ level: n, onClose, onComplete, onAdvance }
     { t: level.intro, c: '#4a7a9a' },
     { t: '', c: '#fff' },
   ]);
-  const [prompt, setPrompt] = useState('kali');
+  // Niveau 4 démarre dans le shell www-data obtenu au niveau 3
+  const [prompt, setPrompt] = useState(() => n === 4 ? 'shell' : 'kali');
   const [toast, setToast]   = useState(null);
   const [doneFlag, setDone] = useState(false);
 
@@ -106,11 +107,28 @@ export default function ADLevelView({ level: n, onClose, onComplete, onAdvance }
     setTerm(t => [...t, { t: `${label}${sep}${cmd}`, c: '#8af' }, ...outLines]);
   };
 
-  const onTerm = (cmd) => {
+  const onTerm = async (cmd) => {
+    // 1. Affiche la commande
+    const pr    = prompt === 'root' ? '#' : '$';
+    const label =
+      prompt === 'root'  ? 'root@ad-server' :
+      prompt === 'shell' ? 'www-data@ad-server' :
+      prompt === 'mysql' ? 'mysql' :
+      prompt === 'winrm' ? '*Evil-WinRM* PS C:\\>' :
+      'attacker@kali';
+    const sep = prompt === 'mysql' ? '> ' : `:${pr} `;
+    setTerm(t => [...t, { t: `${label}${sep}${cmd}`, c: '#8af' }]);
+
+    // 2. Latence réaliste de 800 à 2300ms
+    await new Promise(res => setTimeout(res, 800 + Math.random() * 1500));
+
+    // 3. Affiche le résultat
     const r = handleADTerm(n, prog, cmd, { prompt });
     setProg(r.prog);
     if (r.clear) { setTerm([]); return; }
-    pushTerm(cmd, r.lines || []);
+    if (r.lines && r.lines.length > 0) {
+      setTerm(t => [...t, ...r.lines]);
+    }
     if (r.prompt) setPrompt(r.prompt);
     flash(r.notify);
     if (r.done) finish();

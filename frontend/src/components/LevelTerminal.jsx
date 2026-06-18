@@ -13,19 +13,22 @@ export default function LevelTerminal({ lines, prompt = 'kali', onRun }) {
   const [input, setInput] = useState('');
   const [hist, setHist]   = useState([]);
   const [hIdx, setHIdx]   = useState(-1);
+  const [isRunning, setIsRunning] = useState(false);
   const endRef = useRef(null);
   const inRef  = useRef(null);
   const pr = PROMPTS[prompt] || PROMPTS.kali;
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [lines]);
 
-  const submit = () => {
+  const submit = async () => {
     const cmd = input.trim();
-    if (!cmd) return;
+    if (!cmd || isRunning) return;
     setHist(h => [cmd, ...h].slice(0, 50));
     setHIdx(-1);
-    onRun(cmd);
     setInput('');
+    setIsRunning(true);
+    await onRun(cmd);
+    setIsRunning(false);
   };
 
   const onKey = (e) => {
@@ -74,10 +77,12 @@ export default function LevelTerminal({ lines, prompt = 'kali', onRun }) {
             onChange={e => setInput(e.target.value)}
             onKeyDown={onKey}
             autoFocus
+            disabled={isRunning}
             spellCheck={false}
             style={{
               flex: 1, background: 'transparent', border: 'none', outline: 'none',
               color: '#00f0ff', fontFamily: 'inherit', fontSize: 'inherit',
+              opacity: isRunning ? 0.5 : 1,
             }}
           />
         </div>

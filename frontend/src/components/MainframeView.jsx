@@ -12,7 +12,7 @@ export default function MainframeView({ onClose, onExfiltrate }) {
       "|| ALERTE : INTRUSION PHYSIQUE DÉTECTÉE                  ||",
       "===========================================================",
       "> Authentification bypassée. Accès root obtenu.",
-      "> Entrez la commande d'exfiltration pour récupérer les données.",
+      "> [Astuce] Tapez 'ls' pour voir les fichiers disponibles.",
       " "
     ]);
   }, []);
@@ -23,7 +23,21 @@ export default function MainframeView({ onClose, onExfiltrate }) {
 
     setLogs(prev => [...prev, `root@nexus-mainframe:~# ${command}`]);
 
-    if (command.trim() === './exfiltrate_data.sh') {
+    const cmd = command.trim();
+
+    if (cmd === 'ls') {
+      setLogs(prev => [...prev, "-rwxr-xr-x 1 root root  exfiltrate_data.sh"]);
+      setCommand('');
+      return;
+    }
+
+    if (cmd === 'help') {
+      setLogs(prev => [...prev, "Commandes disponibles: ls, ./exfiltrate_data.sh"]);
+      setCommand('');
+      return;
+    }
+
+    if (cmd === './exfiltrate_data.sh' || cmd === 'bash exfiltrate_data.sh' || cmd === 'sh exfiltrate_data.sh') {
       setIsExfiltrating(true);
       setCommand('');
       setLogs(prev => [...prev, 

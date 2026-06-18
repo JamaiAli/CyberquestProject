@@ -23,16 +23,21 @@ export default function SentinelView({ onClose, onComplete }) {
     setTimeout(() => setToast(null), 2800);
   };
 
-  const onTerm = (cmd) => {
+  const onTerm = async (cmd) => {
+    setTerm(t => [
+      ...t,
+      { t: `ghost@nexus-net:~/ai_core$ ${cmd}`, c: '#00f0ff' }
+    ]);
+
+    await new Promise(res => setTimeout(res, 800 + Math.random() * 1500));
+
     const r = handleSentinel(prog, cmd);
 
     if (r.clear) { setTerm(bootLines()); return; }
 
-    setTerm(t => [
-      ...t,
-      { t: `ghost@nexus-net:~/ai_core$ ${cmd}`, c: '#00f0ff' },
-      ...(r.lines || []),
-    ]);
+    if (r.lines && r.lines.length > 0) {
+      setTerm(t => [...t, ...r.lines]);
+    }
 
     if (r.prog !== prog) setProg(r.prog);
     if (r.notify) flash(r.notify);

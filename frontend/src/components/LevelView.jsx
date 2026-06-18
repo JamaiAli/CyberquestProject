@@ -44,11 +44,21 @@ export default function LevelView({ level: n, onClose, onLogout, onComplete, onA
     setTerm(t => [...t, { t: `${label}:${pr} ${cmd}`, c: '#8fa' }, ...outLines]);
   };
 
-  const onTerm = (cmd) => {
+  const onTerm = async (cmd) => {
+    // Affiche la commande immédiatement
+    const pr = prompt === 'root' ? '#' : '$';
+    const label = prompt === 'reverse' ? 'www-data@dvwa' : prompt === 'root' ? 'root@dvwa' : 'attacker@kali';
+    setTerm(t => [...t, { t: `${label}:${pr} ${cmd}`, c: '#8fa' }]);
+
+    // Latence réaliste de 800 à 2300ms
+    await new Promise(res => setTimeout(res, 800 + Math.random() * 1500));
+
     const r = handleTerm(n, prog, cmd, { prompt });
     setProg(r.prog);
     if (r.clear) { setTerm([]); return; }
-    pushTerm(cmd, r.lines || []);
+    if (r.lines && r.lines.length > 0) {
+      setTerm(t => [...t, ...r.lines]);
+    }
     if (r.prompt) setPrompt(r.prompt);
     flash(r.notify);
     if (r.done) finish();

@@ -98,7 +98,7 @@ export default function IntroScreen({ hackerName, onDone, onLogout }) {
 
       {done && (
         <button
-          className="cyber-button"
+          className="cyber-btn"
           onClick={onDone}
           style={{
             marginTop: '50px',

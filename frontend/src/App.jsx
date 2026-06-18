@@ -532,7 +532,7 @@ export default function App() {
       )}
 
       {/* Bouton "Commencer le test d'intrusion" quand on approche la Web Application */}
-      {nearbyMachine === 'mailserver' && mode === 'NETWORK' && (
+      {nearbyMachine === 'mailserver' && mode === 'NETWORK' && !escapeMode && (
         <div style={{
           position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)',
           zIndex: 600,
@@ -547,7 +547,7 @@ export default function App() {
       )}
 
       {/* Bouton "Commencer le test d'intrusion" quand on approche Active Directory */}
-      {nearbyMachine === 'webserver' && mode === 'NETWORK' && (
+      {nearbyMachine === 'webserver' && mode === 'NETWORK' && !escapeMode && (
         <div style={{
           position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)',
           zIndex: 600,
@@ -564,7 +564,7 @@ export default function App() {
       )}
 
       {/* Bouton "Accéder à AI_CORE" quand on approche AI_CORE */}
-      {nearbyMachine === 'aicore' && mode === 'NETWORK' && (
+      {nearbyMachine === 'aicore' && mode === 'NETWORK' && !escapeMode && (
         <div style={{
           position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)',
           zIndex: 600,
@@ -579,7 +579,7 @@ export default function App() {
       )}
 
       {/* Bouton Mainframe */}
-      {nearbyMachine === 'mainframe' && isAllCleared && (
+      {nearbyMachine === 'mainframe' && isAllCleared && !escapeMode && (
           <div style={{
             position: 'absolute', top: '25%', left: '50%', transform: 'translate(-50%, -50%)',
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px',
