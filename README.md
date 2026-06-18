@@ -4,7 +4,7 @@ Un jeu de simulation de pentest où tu incarnes un hacker infiltrant le réseau 
 
 ---
 
-## 🔄 Différence entre les Versions
+## Différence entre les Versions
 
 > **Version `master` (Client-Serveur)**
 > Version complète avec un backend Node.js (SQLite) et un frontend React. Permet de gérer la persistance en base de données, la sécurité des scores, l'authentification et l'intégration de véritables appels d'API (ex: l'IA Sentinel via GROQ).
@@ -15,13 +15,13 @@ Un jeu de simulation de pentest où tu incarnes un hacker infiltrant le réseau 
 > *Utilité : Démonstrations rapides, salons, hackathons, ou pour jouer hors-ligne.*
 
 **Modifications spécifiques et Sécurisation du PoC :**
-- 🚫 **Sans Backend** : Le dossier `backend` n'est plus utilisé. La logique serveur (`commandEngine.js`) a été entièrement migrée dans le navigateur. L'état du jeu est sauvegardé localement via `localStorage`.
-- ⚡ **Optimisation des Performances (Vite)** : Mise en place d'un système de *Code Splitting* (Chunking) natif séparant le moteur React, le Terminal xterm.js et le code du jeu pour un chargement instantané.
-- 🛡️ **SAST & DAST (0 Vulnérabilités)** : L'application a été auditée et corrigée pour éliminer toutes les failles de dépendances. Le code React ne présente aucune faille XSS (`dangerouslySetInnerHTML` non utilisé).
-- 🔒 **Défense en Profondeur (CSP)** : Intégration d'une politique de sécurité stricte (*Content Security Policy*) bloquant l'exécution de tout script externe malveillant par le navigateur.
-- 🔐 **Sauvegardes Signées** : Les fichiers de sauvegarde locale du joueur sont hachés et signés cryptographiquement. Toute altération manuelle pour tricher corrompt la signature et détruit la sauvegarde.
-- 🕶️ **Obfuscation des Drapeaux** : Tous les "flags" (ex: `CQ{...}`) dans le code source ont été obfusqués et encodés en Base64 pour empêcher la triche par simple inspection du code.
-- 🛑 **Anti-Debugging Actif** : Bloqueur intégré désactivant le clic droit et les raccourcis vers les Outils de Développement (F12, Ctrl+Shift+I).
+- **Sans Backend** : Le dossier `backend` n'est plus utilisé. La logique serveur (`commandEngine.js`) a été entièrement migrée dans le navigateur. L'état du jeu est sauvegardé localement via `localStorage`.
+- **Optimisation des Performances (Vite)** : Mise en place d'un système de *Code Splitting* (Chunking) natif séparant le moteur React, le Terminal xterm.js et le code du jeu pour un chargement instantané.
+- **SAST & DAST (0 Vulnérabilités)** : L'application a été auditée et corrigée pour éliminer toutes les failles de dépendances. Le code React ne présente aucune faille XSS (`dangerouslySetInnerHTML` non utilisé).
+- **Défense en Profondeur (CSP)** : Intégration d'une politique de sécurité stricte (*Content Security Policy*) bloquant l'exécution de tout script externe malveillant par le navigateur.
+- **Sauvegardes Signées** : Les fichiers de sauvegarde locale du joueur sont hachés et signés cryptographiquement. Toute altération manuelle pour tricher corrompt la signature et détruit la sauvegarde.
+- **Obfuscation des Drapeaux** : Tous les "flags" (ex: `CQ{...}`) dans le code source ont été obfusqués et encodés en Base64 pour empêcher la triche par simple inspection du code.
+- **Anti-Debugging Actif** : Bloqueur intégré désactivant le clic droit et les raccourcis vers les Outils de Développement (F12, Ctrl+Shift+I).
 
 ---
 
@@ -44,9 +44,9 @@ Le jeu démarre sur **http://localhost:5173**
 ### Étape 1 — Sélection du personnage
 
 Au lancement, l'écran de sélection affiche trois personnages :
-- **GHOST** 🧑‍💻 — Hacktiviste (+20% XP exploit web)
-- **PHANTOM** 👤 — Spécialiste réseau (+20% XP scans nmap)
-- **VIPER** 🐍 — Social Engineer (+20% XP hydra & creds)
+- **GHOST** — Hacktiviste (+20% XP exploit web)
+- **PHANTOM** — Spécialiste réseau (+20% XP scans nmap)
+- **VIPER** — Social Engineer (+20% XP hydra & creds)
 
 Clique sur un personnage, tape ton alias, puis clique **LANCER LA MISSION**.
 
@@ -163,60 +163,60 @@ Flux complet d'une session de jeu, du lancement au flag final.
 
 ```mermaid
 sequenceDiagram
-    actor P as Joueur
-    participant UI as App.jsx (React)
-    participant GM as GameMap (Canvas)
-    participant T  as Terminal (xterm.js)
-    participant B  as Backend (Express)
-    participant CE as commandEngine.js
+ actor P as Joueur
+ participant UI as App.jsx (React)
+ participant GM as GameMap (Canvas)
+ participant T as Terminal (xterm.js)
+ participant B as Backend (Express)
+ participant CE as commandEngine.js
 
-    P->>UI: Sélectionne personnage + alias
-    UI->>UI: screen = 'intro'
-    UI-->>P: IntroScreen — briefing cinématique
-    P->>UI: Clique "Commencer l'infiltration"
-    UI->>UI: screen = 'game' · timer 360 s démarre
+ P->>UI: Sélectionne personnage + alias
+ UI->>UI: screen = 'intro'
+ UI-->>P: IntroScreen — briefing cinématique
+ P->>UI: Clique "Commencer l'infiltration"
+ UI->>UI: screen = 'game' · timer 360 s démarre
 
-    rect rgb(0, 30, 0)
-        note over P,GM: Déplacement GHOST sur la carte
-        loop Touche flèche pressée
-            P->>GM: ↑ ↓ ← → (window keydown)
-            GM->>GM: Vérifie collision NETWORK_MAP
-            GM->>GM: ghostTileRef ← nouvelle position
-            GM->>GM: Détection proximité machine (Manhattan ≤ 1)
-            GM-->>T: ORACLE › "cd {ip}" si nouvelle machine proche
-            GM-->>P: Bulle interaction au-dessus de GHOST
-        end
-    end
+ rect rgb(0, 30, 0)
+ note over P,GM: Déplacement GHOST sur la carte
+ loop Touche flèche pressée
+ P->>GM: ↑ ↓ ← → (window keydown)
+ GM->>GM: Vérifie collision NETWORK_MAP
+ GM->>GM: ghostTileRef ← nouvelle position
+ GM->>GM: Détection proximité machine (Manhattan ≤ 1)
+ GM-->>T: ORACLE › "cd {ip}" si nouvelle machine proche
+ GM-->>P: Bulle interaction au-dessus de GHOST
+ end
+ end
 
-    rect rgb(0, 0, 40)
-        note over P,CE: Commandes pentest dans le terminal
-        loop Commande soumise
-            P->>T: tape commande (ex : nmap -sV 192.168.1.10)
-            T->>B: POST /api/command {command, sessionId}
-            B->>CE: route vers handler
-            CE->>CE: vérifie phase · met à jour gameState
-            CE-->>B: {output, newState, effect, pedagogie}
-            B-->>T: réponse JSON
-            T-->>P: affiche output (ANSI colors)
-            UI->>GM: gameState mis à jour → redessine carte
-            GM-->>P: bâtiment change couleur · câble devient vert
-        end
-    end
+ rect rgb(0, 0, 40)
+ note over P,CE: Commandes pentest dans le terminal
+ loop Commande soumise
+ P->>T: tape commande (ex : nmap -sV 192.168.1.10)
+ T->>B: POST /api/command {command, sessionId}
+ B->>CE: route vers handler
+ CE->>CE: vérifie phase · met à jour gameState
+ CE-->>B: {output, newState, effect, pedagogie}
+ B-->>T: réponse JSON
+ T-->>P: affiche output (ANSI colors)
+ UI->>GM: gameState mis à jour → redessine carte
+ GM-->>P: bâtiment change couleur · câble devient vert
+ end
+ end
 
-    alt Timer ORACLE — 2 min restantes
-        UI-->>T: ORACLE › "Accélère, ils remontent ta connexion"
-    end
-    alt Timer ORACLE — 1 min restante
-        UI-->>T: ORACLE › "⚠ 60 secondes. Ils arrivent."
-    end
+ alt Timer ORACLE — 2 min restantes
+ UI-->>T: ORACLE › "Accélère, ils remontent ta connexion"
+ end
+ alt Timer ORACLE — 1 min restante
+ UI-->>T: ORACLE › " 60 secondes. Ils arrivent."
+ end
 
-    alt 4 flags capturés (gameWon = true)
-        UI->>UI: screen = 'victory'
-        UI-->>P: Écran Victory — Matrix rain + score final
-    else Timer = 0
-        UI->>UI: screen = 'gameover'
-        UI-->>P: Écran Game Over — glitch rouge
-    end
+ alt 4 flags capturés (gameWon = true)
+ UI->>UI: screen = 'victory'
+ UI-->>P: Écran Victory — Matrix rain + score final
+ else Timer = 0
+ UI->>UI: screen = 'gameover'
+ UI-->>P: Écran Game Over — glitch rouge
+ end
 ```
 
 ---
@@ -227,54 +227,54 @@ Relations entre les composants frontend, le backend, et les flux de données.
 
 ```mermaid
 graph TB
-    subgraph FE["🖥  Frontend — React + Vite  (port 5173)"]
-        direction TB
+ subgraph FE[" Frontend — React + Vite (port 5173)"]
+ direction TB
 
-        App["App.jsx\n── machine à états ──\nselect › intro › game › fin\n── refs partagées ──\nwriteToTermRef · ghostTileRef\nnearbyMachineRef · timerRef"]
+ App["App.jsx\n── machine à états ──\nselect › intro › game › fin\n── refs partagées ──\nwriteToTermRef · ghostTileRef\nnearbyMachineRef · timerRef"]
 
-        subgraph Screens["Écrans"]
-            CS["CharacterSelect.jsx\nGHOST / PHANTOM / VIPER\nalias + bouton lancer"]
-            IS["IntroScreen.jsx\nbriefing cinématique"]
-            GO["GameOver.jsx\nglitch rouge"]
-            VIC["Victory.jsx\nMatrix rain"]
-        end
+ subgraph Screens["Écrans"]
+ CS["CharacterSelect.jsx\nGHOST / PHANTOM / VIPER\nalias + bouton lancer"]
+ IS["IntroScreen.jsx\nbriefing cinématique"]
+ GO["GameOver.jsx\nglitch rouge"]
+ VIC["Victory.jsx\nMatrix rain"]
+ end
 
-        subgraph Game["Jeu principal"]
-            HUD["HUD.jsx\ntimer · identité\nprogression machines"]
-            GM["GameMap.jsx\nCanvas 2D 960×672\ntilemap · bâtiments\nGHOST lerp · câbles\nbulle interaction"]
-            TRM["Terminal.jsx\nxterm.js v5\ncommandes pentest\nautocomplétion · historique"]
-            MV["MachineView.jsx\nphases pentest\nétat machine active"]
-            PP["PedaPanel.jsx\nguide contextuel\nindices par phase"]
-        end
+ subgraph Game["Jeu principal"]
+ HUD["HUD.jsx\ntimer · identité\nprogression machines"]
+ GM["GameMap.jsx\nCanvas 2D 960×672\ntilemap · bâtiments\nGHOST lerp · câbles\nbulle interaction"]
+ TRM["Terminal.jsx\nxterm.js v5\ncommandes pentest\nautocomplétion · historique"]
+ MV["MachineView.jsx\nphases pentest\nétat machine active"]
+ PP["PedaPanel.jsx\nguide contextuel\nindices par phase"]
+ end
 
-        MAP["map.js\nNETWORK_MAP 20×14\nGHOST_SPAWN\nMACHINE_POSITIONS\nCABLE_LINKS"]
-    end
+ MAP["map.js\nNETWORK_MAP 20×14\nGHOST_SPAWN\nMACHINE_POSITIONS\nCABLE_LINKS"]
+ end
 
-    subgraph BE["⚙  Backend — Node.js + Express  (port 3001)"]
-        direction TB
-        SRV["server.js\nPOST /api/command\nGET  /api/state"]
-        CE["commandEngine.js\nnmap · cd · recon · sqlmap\nhydra · cat /flag.txt\nphases · flags · ORACLE\nmessages ANSI colorés"]
-        GS["gameState.js\nMap sessionId → state\npwnedMachines · phase\nxp · level · gameWon"]
-    end
+ subgraph BE[" Backend — Node.js + Express (port 3001)"]
+ direction TB
+ SRV["server.js\nPOST /api/command\nGET /api/state"]
+ CE["commandEngine.js\nnmap · cd · recon · sqlmap\nhydra · cat /flag.txt\nphases · flags · ORACLE\nmessages ANSI colorés"]
+ GS["gameState.js\nMap sessionId → state\npwnedMachines · phase\nxp · level · gameWon"]
+ end
 
-    App -->|"affiche selon screen"| CS & IS & GO & VIC
-    App -->|"affiche"| HUD & GM & TRM & MV & PP
-    GM -->|"importe"| MAP
-    App -->|"importe GHOST_SPAWN\nMACHINE_POSITIONS"| MAP
+ App -->|"affiche selon screen"| CS & IS & GO & VIC
+ App -->|"affiche"| HUD & GM & TRM & MV & PP
+ GM -->|"importe"| MAP
+ App -->|"importe GHOST_SPAWN\nMACHINE_POSITIONS"| MAP
 
-    App -->|"ghostTileRef\nnearbyMachineRef"| GM
-    App -->|"onWriteRef → ORACLE alerts\nonCommand → POST"| TRM
-    TRM -->|"POST /api/command\n{command, sessionId}"| SRV
-    SRV --> CE
-    CE <-->|"lecture / écriture"| GS
-    SRV -->|"{output, newState,\neffect, pedagogie}"| TRM
-    TRM -->|"newState"| App
-    App -->|"gameState"| GM & HUD & MV & PP
+ App -->|"ghostTileRef\nnearbyMachineRef"| GM
+ App -->|"onWriteRef → ORACLE alerts\nonCommand → POST"| TRM
+ TRM -->|"POST /api/command\n{command, sessionId}"| SRV
+ SRV --> CE
+ CE <-->|"lecture / écriture"| GS
+ SRV -->|"{output, newState,\neffect, pedagogie}"| TRM
+ TRM -->|"newState"| App
+ App -->|"gameState"| GM & HUD & MV & PP
 
-    style FE fill:#001a00,stroke:#00ff41,color:#00ff41
-    style BE fill:#00001a,stroke:#0066ff,color:#88aaff
-    style APP fill:#002200
-    style MAP fill:#001122
+ style FE fill:#001a00,stroke:#00ff41,color:#00ff41
+ style BE fill:#00001a,stroke:#0066ff,color:#88aaff
+ style APP fill:#002200
+ style MAP fill:#001122
 ```
 
 ---
@@ -284,26 +284,26 @@ graph TB
 ```
 cyberquest/
 ├── backend/
-│   ├── engine/
-│   │   ├── commandEngine.js   # Moteur de jeu : commandes, scénarios, flags
-│   │   └── gameState.js       # Sessions en mémoire (Map par sessionId)
-│   └── server.js              # API Express — POST /api/command, GET /api/state
+│ ├── engine/
+│ │ ├── commandEngine.js # Moteur de jeu : commandes, scénarios, flags
+│ │ └── gameState.js # Sessions en mémoire (Map par sessionId)
+│ └── server.js # API Express — POST /api/command, GET /api/state
 └── frontend/
-    └── src/
-        ├── map.js              # Tilemap 20×14 : grille, positions machines, câbles
-        ├── components/
-        │   ├── CharacterSelect.jsx  # Sélection GHOST/PHANTOM/VIPER
-        │   ├── IntroScreen.jsx      # Cinématique de briefing
-        │   ├── GameMap.jsx          # Carte top-down Canvas (bâtiments, GHOST, câbles)
-        │   ├── Terminal.jsx         # Terminal xterm.js (commandes pentest)
-        │   ├── HUD.jsx              # Timer, identité, progression
-        │   ├── MachineView.jsx      # Vue phases pentest par machine
-        │   ├── PedaPanel.jsx        # Guide pédagogique contextuel
-        │   ├── GameOver.jsx         # Écran de fin (temps écoulé)
-        │   └── Victory.jsx          # Écran de victoire (Matrix rain)
-        ├── sounds.js           # Sons synthétisés (Web Audio API, sans fichiers)
-        ├── styles/main.css     # Animations, CRT scanlines, thème cyberpunk
-        └── App.jsx             # Machine à états : select → intro → game → fin
+ └── src/
+ ├── map.js # Tilemap 20×14 : grille, positions machines, câbles
+ ├── components/
+ │ ├── CharacterSelect.jsx # Sélection GHOST/PHANTOM/VIPER
+ │ ├── IntroScreen.jsx # Cinématique de briefing
+ │ ├── GameMap.jsx # Carte top-down Canvas (bâtiments, GHOST, câbles)
+ │ ├── Terminal.jsx # Terminal xterm.js (commandes pentest)
+ │ ├── HUD.jsx # Timer, identité, progression
+ │ ├── MachineView.jsx # Vue phases pentest par machine
+ │ ├── PedaPanel.jsx # Guide pédagogique contextuel
+ │ ├── GameOver.jsx # Écran de fin (temps écoulé)
+ │ └── Victory.jsx # Écran de victoire (Matrix rain)
+ ├── sounds.js # Sons synthétisés (Web Audio API, sans fichiers)
+ ├── styles/main.css # Animations, CRT scanlines, thème cyberpunk
+ └── App.jsx # Machine à états : select → intro → game → fin
 ```
 
 ---
