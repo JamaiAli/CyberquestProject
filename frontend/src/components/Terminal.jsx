@@ -38,12 +38,12 @@ export default function Terminal({ onCommand, gameState, onWriteRef, onRunRef })
     const term = new XTerm({
       theme: {
         background: '#0d0d0d',
-        foreground: '#00ff41',
-        cursor: '#00ff41',
+        foreground: '#00f0ff',
+        cursor: '#00f0ff',
         cursorAccent: '#0d0d0d',
         selectionBackground: '#1a4a1a',
         black: '#0d0d0d',
-        green: '#00ff41',
+        green: '#00f0ff',
         brightGreen: '#39ff14',
         yellow: '#ffff00',
         brightYellow: '#ffee00',
@@ -260,7 +260,7 @@ export default function Terminal({ onCommand, gameState, onWriteRef, onRunRef })
     <div ref={containerRef} style={{
       height: '100%', width: '100%',
       background: '#0d0d0d',
-      borderTop: '2px solid #00ff41',
+      borderTop: '2px solid #00f0ff',
       padding: '4px 8px',
       overflow: 'hidden',
     }} />

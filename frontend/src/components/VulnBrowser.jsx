@@ -35,16 +35,16 @@ export default function VulnBrowser({ level, prog, output, webError, onSubmit })
 
 const dot = (col) => ({ width: 11, height: 11, borderRadius: '50%', background: col, display: 'inline-block' });
 
-// DVWA red/grey skin wrapper
+// DVWA Cyberpunk wrapper
 function DvwaShell({ children }) {
   return (
-    <div style={{ fontFamily: '"Segoe UI", Arial, sans-serif', color: '#e6e6e6', minHeight: '100%' }}>
+    <div className="cyber-panel" style={{ fontFamily: '"Rajdhani", Arial, sans-serif', color: '#e0e0ff', minHeight: '100%', margin: '4px' }}>
       <div style={{
-        background: 'linear-gradient(#2a0000,#1a0000)', borderBottom: '2px solid #c00',
+        background: 'linear-gradient(90deg, rgba(255,0,127,0.2), transparent)', borderBottom: '2px solid var(--neon-pink)',
         padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
-        <span style={{ color: '#e23', fontWeight: 'bold', fontSize: '20px', letterSpacing: '1px' }}>DVWA</span>
-        <span style={{ color: '#888', fontSize: '11px' }}>Damn Vulnerable Web Application</span>
+        <span className="cyber-font glow" style={{ color: 'var(--neon-pink)', fontSize: '24px' }}>DVWA_CYBER</span>
+        <span style={{ color: 'var(--neon-blue)', fontSize: '12px', letterSpacing: '1px', textTransform: 'uppercase' }}>Damn Vulnerable Web App</span>
       </div>
       <div style={{ padding: '20px 24px' }}>{children}</div>
     </div>
@@ -56,13 +56,11 @@ const H = ({ children }) => (
 );
 
 const inputStyle = {
-  background: '#1b1b1b', border: '1px solid #444', color: '#eee',
-  padding: '7px 10px', fontFamily: 'monospace', fontSize: '13px', borderRadius: '3px',
+  background: 'rgba(10, 10, 26, 0.6)', border: '1px solid var(--neon-blue)', color: 'var(--neon-blue)',
+  padding: '7px 10px', fontFamily: '"Fira Code", monospace', fontSize: '13px',
+  boxShadow: 'inset 0 0 10px rgba(0, 240, 255, 0.1)', outline: 'none'
 };
-const btnStyle = {
-  background: '#c00', border: 'none', color: '#fff', padding: '7px 18px',
-  cursor: 'pointer', fontWeight: 'bold', borderRadius: '3px', fontSize: '13px',
-};
+const btnStyle = {}; // Obsolete, replaced by className="cyber-btn"
 
 function OutBox({ output, webError }) {
   if (webError) {
@@ -112,7 +110,7 @@ function PageBody({ level, prog, output, webError, onSubmit }) {
               <input style={{ ...inputStyle, width: '100%' }} value={user} onChange={e => setUser(e.target.value)} /></div>
             <div style={{ marginBottom: 14 }}><label style={lbl}>Password</label>
               <input type="password" style={{ ...inputStyle, width: '100%' }} value={pass} onChange={e => setPass(e.target.value)} /></div>
-            <button style={btnStyle} onClick={() => onSubmit({ button: 'login', user, pass })}>Login</button>
+            <button className="cyber-btn" onClick={() => onSubmit({ button: 'login', user, pass })}>Login</button>
           </div>
           <OutBox webError={webError} />
         </>
@@ -123,7 +121,7 @@ function PageBody({ level, prog, output, webError, onSubmit }) {
         <>
           <H>Database Setup :: DVWA</H>
           <p style={{ color: '#bbb', fontSize: 13 }}>Click on the 'Create / Reset Database' button below to create or reset your database.</p>
-          <button style={btnStyle} onClick={() => onSubmit({ button: 'reset' })}>Create / Reset Database</button>
+          <button className="cyber-btn" onClick={() => onSubmit({ button: 'reset' })}>Create / Reset Database</button>
           <OutBox webError={webError} />
         </>
       );
@@ -137,7 +135,7 @@ function PageBody({ level, prog, output, webError, onSubmit }) {
           <option value="low">Low</option><option value="medium">Medium</option>
           <option value="high">High</option><option value="impossible">Impossible</option>
         </select>
-        <button style={btnStyle} onClick={() => onSubmit({ button: 'security', value: sec })}>Submit</button>
+        <button className="cyber-btn" onClick={() => onSubmit({ button: 'security', value: sec })}>Submit</button>
         <OutBox webError={webError} />
         {prog.phase === 'done' && <div style={{ marginTop: 16, color: '#3c3', fontWeight: 'bold' }}>✓ Environnement prêt — niveau validé.</div>}
       </>
@@ -155,7 +153,7 @@ function PageBody({ level, prog, output, webError, onSubmit }) {
           <input style={inputStyle} value={val} placeholder="127.0.0.1"
             onChange={e => setVal(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') onSubmit({ value: val }); }} />
-          <button style={btnStyle} onClick={() => onSubmit({ value: val })}>Submit</button>
+          <button className="cyber-btn" onClick={() => onSubmit({ value: val })}>Submit</button>
         </div>
         <OutBox output={output} webError={webError} />
       </>
@@ -175,7 +173,7 @@ function PageBody({ level, prog, output, webError, onSubmit }) {
           <input style={{ ...inputStyle, width: 440 }} value={val} placeholder="../../../../etc/passwd"
             onChange={e => setVal(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') onSubmit({ value: val }); }} />
-          <button style={btnStyle} onClick={() => onSubmit({ value: val })}>Inclure</button>
+          <button className="cyber-btn" onClick={() => onSubmit({ value: val })}>Inclure</button>
         </div>
         <div style={{ marginTop: 6, fontSize: 11, color: '#777' }}>
           Pages légitimes : file1.php · file2.php · file3.php
@@ -199,7 +197,7 @@ function PageBody({ level, prog, output, webError, onSubmit }) {
           <input style={{ ...inputStyle, width: 260 }} value={val} placeholder="shell.php"
             onChange={e => setVal(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') onSubmit({ value: val }); }} />
-          <button style={btnStyle} onClick={() => onSubmit({ value: val })}>Upload</button>
+          <button className="cyber-btn" onClick={() => onSubmit({ value: val })}>Upload</button>
         </div>
         <div style={{ marginTop: 6, fontSize: 11, color: '#777' }}>
           Le fichier doit exister sur Kali (crée-le dans le terminal : <code>cat &gt; shell.php</code>).
@@ -219,7 +217,7 @@ function PageBody({ level, prog, output, webError, onSubmit }) {
           <input style={{ ...inputStyle, width: 360 }} value={val} placeholder="Enter your name"
             onChange={e => setVal(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') onSubmit({ value: val }); }} />
-          <button style={btnStyle} onClick={() => onSubmit({ value: val })}>Submit</button>
+          <button className="cyber-btn" onClick={() => onSubmit({ value: val })}>Submit</button>
         </div>
         <OutBox output={output} webError={webError} />
       </>
@@ -243,7 +241,7 @@ function PageBody({ level, prog, output, webError, onSubmit }) {
             <textarea style={{ ...inputStyle, flex: 1, minHeight: 60 }} value={val} placeholder="Hello!"
               onChange={e => setVal(e.target.value)} />
           </div>
-          <button style={{ ...btnStyle, alignSelf: 'flex-start', marginLeft: 80 }} 
+          <button className="cyber-btn" 
             onClick={() => onSubmit({ name: user || 'Guest', message: val })}>Sign Guestbook</button>
         </div>
         
@@ -289,7 +287,7 @@ function PageBody({ level, prog, output, webError, onSubmit }) {
             placeholder={level.url + "?default=English"}
             onChange={e => setVal(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') onSubmit({ url: val }); }} />
-          <button style={btnStyle} onClick={() => onSubmit({ url: val })}>Aller</button>
+          <button className="cyber-btn" onClick={() => onSubmit({ url: val })}>Aller</button>
         </div>
         <OutBox output={output} webError={webError} />
       </>
@@ -305,13 +303,13 @@ function PageBody({ level, prog, output, webError, onSubmit }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 360, marginBottom: 20 }}>
           <input style={inputStyle} type="password" value={pass} placeholder="New password" onChange={e => setPass(e.target.value)} />
           <input style={inputStyle} type="password" value={user} placeholder="Confirm new password" onChange={e => setUser(e.target.value)} />
-          <button style={{ ...btnStyle, alignSelf: 'flex-start' }} onClick={() => onSubmit({ action: 'change', pass, conf: user })}>Change</button>
+          <button className="cyber-btn" onClick={() => onSubmit({ action: 'change', pass, conf: user })}>Change</button>
         </div>
         <H>Attacker Simulator (Inject HTML)</H>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <input style={{ ...inputStyle, width: '100%' }} value={val} placeholder='<img src="..." />'
             onChange={e => setVal(e.target.value)} />
-          <button style={btnStyle} onClick={() => onSubmit({ action: 'exploit', payload: val })}>Test Exploit</button>
+          <button className="cyber-btn" onClick={() => onSubmit({ action: 'exploit', payload: val })}>Test Exploit</button>
         </div>
         <OutBox output={output} webError={webError} />
       </>
@@ -324,7 +322,7 @@ function PageBody({ level, prog, output, webError, onSubmit }) {
       <>
         <H>Vulnerability: Weak Session IDs</H>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 20 }}>
-          <button style={btnStyle} onClick={() => onSubmit({ action: 'generate' })}>Generate Session</button>
+          <button className="cyber-btn" onClick={() => onSubmit({ action: 'generate' })}>Generate Session</button>
         </div>
         <H>Session Hijacking</H>
         <p style={{ color: '#bbb', fontSize: 13, margin: '0 0 10px' }}>Devine la prochaine session qui sera attribuée :</p>
@@ -332,7 +330,7 @@ function PageBody({ level, prog, output, webError, onSubmit }) {
           <span style={{ color: '#bbb', fontSize: 13 }}>dvwaSession=</span>
           <input style={{ ...inputStyle, width: 200 }} value={val} placeholder="1005"
             onChange={e => setVal(e.target.value)} />
-          <button style={btnStyle} onClick={() => onSubmit({ action: 'hijack', guess: val })}>Hijack</button>
+          <button className="cyber-btn" onClick={() => onSubmit({ action: 'hijack', guess: val })}>Hijack</button>
         </div>
         <OutBox output={output} webError={webError} />
       </>
@@ -356,7 +354,7 @@ function PageBody({ level, prog, output, webError, onSubmit }) {
             <span style={{ width: 80, color: '#bbb', fontSize: 13 }}>Token:</span>
             <input style={{ ...inputStyle, flex: 1 }} value={val} placeholder="md5(sseccus) ou d5...c4" onChange={e => setVal(e.target.value)} />
           </div>
-          <button style={{ ...btnStyle, alignSelf: 'flex-start', marginLeft: 80 }} 
+          <button className="cyber-btn" 
             onClick={() => onSubmit({ action: 'submit', phrase: user, token: val, simulatedValid: true })}>Submit</button>
         </div>
         <OutBox output={output} webError={webError} />
@@ -375,7 +373,7 @@ function PageBody({ level, prog, output, webError, onSubmit }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 360, marginBottom: 20 }}>
           <input style={inputStyle} type="password" value={pass} placeholder="New password" onChange={e => setPass(e.target.value)} />
           <input style={inputStyle} type="password" value={user} placeholder="Confirm new password" onChange={e => setUser(e.target.value)} />
-          <button style={{ ...btnStyle, alignSelf: 'flex-start', background: '#555', cursor: 'not-allowed' }} disabled>Change (Require CAPTCHA)</button>
+          <button className="cyber-btn" disabled style={{ background: '#555', cursor: 'not-allowed', color: '#999', borderColor: '#555', boxShadow: 'none' }}>Change (Require CAPTCHA)</button>
         </div>
         <H>HTTP Request Simulator</H>
         <p style={{ color: '#bbb', fontSize: 13, margin: '0 0 10px' }}>
@@ -385,7 +383,7 @@ function PageBody({ level, prog, output, webError, onSubmit }) {
           <textarea style={{ ...inputStyle, minHeight: 80 }} value={val} 
             placeholder="step=2&password_new=a&password_conf=a&passed_captcha=true"
             onChange={e => setVal(e.target.value)} />
-          <button style={{ ...btnStyle, alignSelf: 'flex-start' }} 
+          <button className="cyber-btn" 
             onClick={() => onSubmit({ action: 'submit', payload: val })}>Send Request</button>
         </div>
         <OutBox output={output} webError={webError} />
@@ -403,7 +401,7 @@ function PageBody({ level, prog, output, webError, onSubmit }) {
         <input style={{ ...inputStyle, width: 360 }} value={val} placeholder="1"
           onChange={e => setVal(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') onSubmit({ value: val }); }} />
-        <button style={btnStyle} onClick={() => onSubmit({ value: val })}>Submit</button>
+        <button className="cyber-btn" onClick={() => onSubmit({ value: val })}>Submit</button>
       </div>
       <OutBox output={output} webError={webError} />
     </>

@@ -32,8 +32,7 @@ const PHASE_INFO = [
 const MACHINE_HINTS = {
   webserver:  ['Ports 88+389+3268 = signature Domain Controller', 'nmap -sC -sV -p- 192.168.1.10 → révèle FQDN dc.corp.local', 'dnsrecon -d corp.local -n 192.168.1.10 -t std → SRV records Kerberos/LDAP'],
   mailserver: ['Bannière SMTP révèle la version Postfix', 'VRFY activée → énumération users', 'Brute-force SSH : admin:letmein'],
-  dbserver:   ['Accès via pivot depuis webserver/mailserver', 'Credentials DB trouvés dans les emails', 'MySQL FILE privilege → lecture /etc/shadow'],
-  dc:         ['SMB signing désactivé → Pass-the-Hash', 'Kerberoasting : SPN MSSQLSvc disponible', 'Creds DB permettent le pivot'],
+  aicore:     ['Analyse le prompt de Sentinel', 'Trouve un moyen de contourner les instructions de base'],
 };
 
 export default function PedaPanel({ info, lastCommand, gameState }) {
@@ -54,25 +53,26 @@ export default function PedaPanel({ info, lastCommand, gameState }) {
     cmd:     {
       margin: '3px 0', padding: '3px 7px',
       background: '#0d0d12', border: '1px solid #1a1a24',
-      borderRadius: '3px', color: '#00ff41', fontSize: '10px',
+      borderRadius: '3px', color: '#00f0ff', fontSize: '10px',
       fontFamily: 'monospace',
     },
   };
 
   return (
-    <div style={{
+    <div className="cyber-panel" style={{
       display: 'flex', flexDirection: 'column',
-      background: '#08080e', borderLeft: '1px solid #1a1a2a',
-      color: '#888', fontFamily: '"Fira Code", monospace',
-      fontSize: '11px', overflow: 'auto', height: '100%',
+      background: 'rgba(5, 5, 12, 0.95)', borderLeft: '1px solid var(--neon-blue)',
+      boxShadow: '-4px 0 15px rgba(0, 240, 255, 0.1)',
+      color: '#888', fontFamily: '"Rajdhani", monospace',
+      fontSize: '12px', overflow: 'auto', height: '100%',
     }}>
 
       {/* Header */}
-      <div style={{ padding: '7px 12px', background: '#05050a', borderBottom: '1px solid #1a1a2a', flexShrink: 0 }}>
-        <span style={{ color: '#00ff4166', fontWeight: 'bold', fontSize: '9px', letterSpacing: '1px' }}>
-          AIDE &amp; GUIDE
+      <div style={{ padding: '7px 12px', background: 'rgba(0, 240, 255, 0.1)', borderBottom: '1px solid var(--neon-blue)', flexShrink: 0 }}>
+        <span className="cyber-font glow" style={{ color: 'var(--neon-blue)', fontWeight: 'bold', fontSize: '12px', letterSpacing: '2px' }}>
+          AIDE & GUIDE
         </span>
-        <span style={{ float: 'right', color: '#222', fontSize: '9px' }}>
+        <span className="cyber-font" style={{ float: 'right', color: 'var(--text)', fontSize: '11px', marginTop: '2px' }}>
           {mode === 'MACHINE' && machine ? `⚡ ${machine.name}` : '🌐 RÉSEAU'}
         </span>
       </div>
@@ -83,10 +83,10 @@ export default function PedaPanel({ info, lastCommand, gameState }) {
           {/* Machine header */}
           <div style={{ ...s.section, flexShrink: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '7px' }}>
-              <span style={{ fontSize: '16px' }}>{machine.icon}</span>
+              <span style={{ fontSize: '20px' }}>{machine.icon}</span>
               <div>
-                <div style={{ color: '#00ff41', fontWeight: 'bold', fontSize: '11px' }}>{machine.name}</div>
-                <div style={{ color: '#333', fontSize: '9px' }}>{machine.ip} — {machine.os}</div>
+                <div className="cyber-font" style={{ color: 'var(--neon-pink)', fontWeight: 'bold', fontSize: '14px', letterSpacing: '1px' }}>{machine.name.toUpperCase()}</div>
+                <div style={{ color: 'var(--neon-blue)', fontSize: '11px' }}>{machine.ip} — {machine.os}</div>
               </div>
             </div>
             {/* Phase pills */}
@@ -131,8 +131,8 @@ export default function PedaPanel({ info, lastCommand, gameState }) {
               </div>
             )}
             <div style={{ color: '#2a2a3a', fontSize: '10px', lineHeight: '1.7' }}>
-              Tape <span style={{ color: '#00ff41' }}>hint</span> → indice complet<br />
-              Tape <span style={{ color: '#00ff41' }}>help</span> → toutes les commandes
+              Tape <span style={{ color: '#00f0ff' }}>hint</span> → indice complet<br />
+              Tape <span style={{ color: '#00f0ff' }}>help</span> → toutes les commandes
             </div>
           </div>
         </>
@@ -141,23 +141,13 @@ export default function PedaPanel({ info, lastCommand, gameState }) {
       {/* ── MACHINE DONE ── */}
       {mode === 'MACHINE' && machine && done && (
         <div style={{ ...s.section, flexShrink: 0 }}>
-          <div style={{ color: '#00ff41', fontWeight: 'bold', fontSize: '11px', marginBottom: '6px' }}>
+          <div style={{ color: '#00f0ff', fontWeight: 'bold', fontSize: '11px', marginBottom: '6px' }}>
             🚩 PWNED !
           </div>
           <div style={{ color: '#3a4a3a', fontSize: '10px', lineHeight: '1.6' }}>
             {machine.name} compromise.<br />
-            Tape <span style={{ color: '#00ff41' }}>exit</span> pour revenir au réseau.
+            Tape <span style={{ color: '#00f0ff' }}>exit</span> pour revenir au réseau.
           </div>
-          {unlocked.includes('dbserver') && !pwned.includes('dbserver') && (
-            <div style={{ marginTop: '8px', color: '#00aaff', fontSize: '10px' }}>
-              🔓 DB Server (192.168.1.30) débloqué !
-            </div>
-          )}
-          {unlocked.includes('dc') && !pwned.includes('dc') && (
-            <div style={{ marginTop: '4px', color: '#aa44ff', fontSize: '10px' }}>
-              🔓 Domain Controller (192.168.1.100) débloqué !
-            </div>
-          )}
         </div>
       )}
 
@@ -165,7 +155,7 @@ export default function PedaPanel({ info, lastCommand, gameState }) {
       {mode === 'NETWORK' && (
         <>
           <div style={{ ...s.section, flexShrink: 0 }}>
-            <div style={{ ...s.label, color: '#00aaff' }}>📍 GUIDE DE DÉMARRAGE</div>
+            <div className="cyber-font glow" style={{ ...s.label, color: 'var(--neon-pink)', fontSize: '12px' }}>📍 GUIDE DE DÉMARRAGE</div>
             {[
               { n: '1', cmd: 'nmap 192.168.1.0/24',                        desc: 'Découvrir les machines' },
               { n: '2', cmd: 'nmap -sC -sV -p- 192.168.1.10',           desc: 'Scan complet NSE — signature DC' },
@@ -183,9 +173,9 @@ export default function PedaPanel({ info, lastCommand, gameState }) {
           <div style={{ ...s.section, flexShrink: 0 }}>
             <div style={{ ...s.label, color: '#6666ff' }}>🆘 BLOQUÉ ?</div>
             <div style={{ color: '#2a2a3a', fontSize: '10px', lineHeight: '1.7' }}>
-              Tape <span style={{ color: '#00ff41' }}>hint</span> → indice<br />
-              Tape <span style={{ color: '#00ff41' }}>help</span> → commandes<br />
-              Tape <span style={{ color: '#00ff41' }}>nmap 192.168.1.0/24</span> pour commencer
+              Tape <span style={{ color: '#00f0ff' }}>hint</span> → indice<br />
+              Tape <span style={{ color: '#00f0ff' }}>help</span> → commandes<br />
+              Tape <span style={{ color: '#00f0ff' }}>nmap 192.168.1.0/24</span> pour commencer
             </div>
           </div>
         </>
@@ -200,13 +190,12 @@ export default function PedaPanel({ info, lastCommand, gameState }) {
       )}
 
       {/* Machine status mini-list */}
-      <div style={{ padding: '10px 12px', marginTop: 'auto', borderTop: '1px solid #0e0e18', flexShrink: 0 }}>
-        <div style={{ ...s.label, color: '#1a1a2a' }}>MACHINES</div>
+      <div style={{ padding: '10px 12px', marginTop: 'auto', borderTop: '1px solid var(--neon-blue)', background: 'rgba(0, 240, 255, 0.05)', flexShrink: 0 }}>
+        <div className="cyber-font" style={{ ...s.label, color: 'var(--neon-blue)', fontSize: '11px' }}>MACHINES</div>
         {[
           { id: 'webserver',  name: 'Active Directory',   ip: '.10' },
           { id: 'mailserver', name: 'Mail Server',       ip: '.20' },
-          { id: 'dbserver',   name: 'DB Server',         ip: '.30' },
-          { id: 'dc',         name: 'Domain Controller', ip: '.100' },
+          { id: 'aicore',     name: 'AI_CORE',           ip: '.99' },
         ].map(m => {
           const isPwned  = pwned.includes(m.id);
           const isLocked = !unlocked.includes(m.id);
@@ -214,10 +203,10 @@ export default function PedaPanel({ info, lastCommand, gameState }) {
             <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '3px 0', borderBottom: '1px solid #0a0a0e' }}>
               <div style={{
                 width: '6px', height: '6px', borderRadius: '50%', flexShrink: 0,
-                background: isPwned ? '#00ff41' : isLocked ? '#111' : '#223',
-                boxShadow: isPwned ? '0 0 5px #00ff41' : 'none',
+                background: isPwned ? '#00f0ff' : isLocked ? '#111' : '#223',
+                boxShadow: isPwned ? '0 0 5px #00f0ff' : 'none',
               }} />
-              <span style={{ color: isPwned ? '#00ff41' : isLocked ? '#1a1a1a' : '#333', fontSize: '9px', flex: 1 }}>
+              <span style={{ color: isPwned ? '#00f0ff' : isLocked ? '#1a1a1a' : '#333', fontSize: '9px', flex: 1 }}>
                 {m.name}
               </span>
               <span style={{ color: '#1a1a1a', fontSize: '9px' }}>192.168.1{m.ip}</span>

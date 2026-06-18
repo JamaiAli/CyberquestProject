@@ -63,16 +63,16 @@ export default function LevelView({ level: n, onClose, onLogout, onComplete, onA
       {/* Header */}
       <div style={{
         flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '10px 18px', background: '#06080c', borderBottom: '1px solid #11331c',
+        padding: '10px 18px', background: '#06080c', borderBottom: '1px solid #1a1a3a',
       }}>
         <div>
-          <span style={{ color: '#00ff41', fontWeight: 'bold', fontSize: 15 }}>
+          <span style={{ color: '#00f0ff', fontWeight: 'bold', fontSize: 15 }}>
             Niveau {n} · {level.title}
           </span>
           <span style={{ color: '#4a6a55', fontSize: 11, marginLeft: 12 }}>{level.owasp}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <span style={{ color: doneCount === objs.length ? '#00ff41' : '#5a8a6a', fontSize: 12 }}>
+          <span style={{ color: doneCount === objs.length ? '#00f0ff' : '#5a8a6a', fontSize: 12 }}>
             {doneCount}/{objs.length} objectifs
           </span>
           {onLogout && (
@@ -83,7 +83,7 @@ export default function LevelView({ level: n, onClose, onLogout, onComplete, onA
             </button>
           )}
           <button onClick={onClose} style={closeBtn}
-            onMouseEnter={e => { e.currentTarget.style.color = '#00ff41'; e.currentTarget.style.borderColor = '#00ff41'; }}
+            onMouseEnter={e => { e.currentTarget.style.color = '#00f0ff'; e.currentTarget.style.borderColor = '#00f0ff'; }}
             onMouseLeave={e => { e.currentTarget.style.color = '#5a8a6a'; e.currentTarget.style.borderColor = '#1a3a26'; }}>
             ✕ Carte
           </button>
@@ -93,19 +93,19 @@ export default function LevelView({ level: n, onClose, onLogout, onComplete, onA
       {/* Body: browser | (terminal + objectives) */}
       <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1.35fr 1fr', minHeight: 0 }}>
         {/* Left: vulnerable web app */}
-        <div style={{ borderRight: '1px solid #11331c', minHeight: 0 }}>
+        <div style={{ borderRight: '1px solid #1a1a3a', minHeight: 0 }}>
           <VulnBrowser level={level} prog={prog} output={webOut} webError={webErr} onSubmit={onWebSubmit} />
         </div>
 
         {/* Right: terminal + objectives */}
         <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-          <div style={{ flex: '1 1 60%', minHeight: 0, borderBottom: '1px solid #11331c' }}>
+          <div style={{ flex: '1 1 60%', minHeight: 0, borderBottom: '1px solid #1a1a3a' }}>
             <LevelTerminal lines={term} prompt={prompt} onRun={onTerm} />
           </div>
           <div style={{ flex: '0 0 40%', overflow: 'auto', background: '#080a0e', padding: '12px 14px' }}>
-            <div style={{ color: '#00ff41', fontSize: 12, fontWeight: 'bold', marginBottom: 8, letterSpacing: 1 }}>🎯 OBJECTIFS</div>
+            <div style={{ color: '#00f0ff', fontSize: 12, fontWeight: 'bold', marginBottom: 8, letterSpacing: 1 }}>🎯 OBJECTIFS</div>
             {objs.map((o, i) => (
-              <div key={i} style={{ fontSize: 12, marginBottom: 5, color: o.done ? '#00ff41' : '#6a7a8a' }}>
+              <div key={i} style={{ fontSize: 12, marginBottom: 5, color: o.done ? '#00f0ff' : '#6a7a8a' }}>
                 {o.done ? '✓' : '○'} {o.label}
               </div>
             ))}
@@ -141,9 +141,9 @@ export default function LevelView({ level: n, onClose, onLogout, onComplete, onA
       {doneFlag && (
         <div style={{
           flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '11px 18px', background: '#08140a', borderTop: '1px solid #00ff41',
+          padding: '11px 18px', background: '#08140a', borderTop: '1px solid #00f0ff',
         }}>
-          <span style={{ color: '#00ff41', fontSize: 13 }}>
+          <span style={{ color: '#00f0ff', fontSize: 13 }}>
             ✅ Niveau {n} validé — continue d'explorer, puis avance quand tu veux.
           </span>
           <button onClick={() => onAdvance?.(n)} style={nextBtn}>
@@ -156,9 +156,9 @@ export default function LevelView({ level: n, onClose, onLogout, onComplete, onA
       {toast && (
         <div style={{
           position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
-          background: '#08120a', border: '1px solid #00ff41', color: '#00ff41',
+          background: '#08120a', border: '1px solid #00f0ff', color: '#00f0ff',
           padding: '9px 20px', borderRadius: 5, fontSize: 13, zIndex: 1200,
-          boxShadow: '0 0 24px #00ff4144',
+          boxShadow: '0 0 24px #00f0ff44',
         }}>
           {toast}
         </div>
@@ -173,10 +173,10 @@ const closeBtn = {
 };
 
 const nextBtn = {
-  background: 'linear-gradient(135deg,#0a2a0a,#0d3a0d)', border: '1px solid #00ff41',
-  color: '#00ff41', fontFamily: '"Fira Code",monospace', fontSize: 13, fontWeight: 'bold',
+  background: 'linear-gradient(135deg,#0a2a0a,#0d3a0d)', border: '1px solid #00f0ff',
+  color: '#00f0ff', fontFamily: '"Fira Code",monospace', fontSize: 13, fontWeight: 'bold',
   cursor: 'pointer', padding: '8px 20px', borderRadius: 4, letterSpacing: '0.03em',
-  boxShadow: '0 0 16px #00ff4144', animation: 'pulse 1.8s ease-in-out infinite',
+  boxShadow: '0 0 16px #00f0ff44', animation: 'pulse 1.8s ease-in-out infinite',
 };
 
 const logoutBtnStyle = {
