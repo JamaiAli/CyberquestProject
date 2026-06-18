@@ -4,7 +4,6 @@ import HUD from './components/HUD';
 import PedaPanel from './components/PedaPanel';
 import MachineView from './components/MachineView';
 import Scoreboard from './components/Scoreboard';
-import CharacterSelect from './components/CharacterSelect';
 import LevelMap from './components/LevelMap';
 import LevelView from './components/LevelView';
 import ADLevelMap from './components/ADLevelMap';
@@ -13,6 +12,7 @@ import PromptInjectionLevelMap from './components/PromptInjectionLevelMap';
 import PromptInjectionLevelView from './components/PromptInjectionLevelView';
 import SuperLLrMView from './components/SuperLLrMView';
 import AICoreLevels from './components/AICoreLevels';
+import MainframeView from './components/MainframeView';
 import { getChallenge } from './levels/aiChallenges';
 import IntroScreen from './components/IntroScreen';
 import GameOver from './components/GameOver';
@@ -55,8 +55,8 @@ export default function App() {
   const [user, setUser]               = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [showDisclaimer, setShowDisclaimer] = useState(true);
-  const [screen, setScreen]       = useState('select'); // 'select' | 'intro' | 'game' | 'gameover' | 'victory'
-  const [player, setPlayer]       = useState(null);
+  const [screen, setScreen]       = useState('intro'); // 'intro' | 'game' | 'gameover' | 'victory'
+  const [player, setPlayer]       = useState({ hackerName: 'GHOST', role: 'Hacktiviste', emoji: '🧑‍💻' });
   const [sessionId, setSessionId] = useState('');
   const [gameState, setGameState] = useState(() => makeInitialState(''));
   const [lastCommand, setLastCommand] = useState(null);
@@ -86,6 +86,10 @@ export default function App() {
   const [piLevelsDone, setPiLevelsDone]     = useState([]);
   const [piProgs, setPiProgs]               = useState({});
 
+  const [showMainframe, setShowMainframe]   = useState(false);
+  const [escapeMode, setEscapeMode]         = useState(false);
+  const [escapeTime, setEscapeTime]         = useState(45);
+
   const timerRef        = useRef(null);
   const writeToTermRef  = useRef(null);
   const runTerminalRef  = useRef(null);
@@ -94,14 +98,21 @@ export default function App() {
   const nearbyMachineRef = useRef(null);
   const oracleSentRef   = useRef(new Set());
   const gameStateRef    = useRef(gameState);
+  const escapeModeRef   = useRef(escapeMode);
+
+  const isAllCleared = levelsDone.length === MAX_LEVEL && adLevelsDone.length === MAX_AD_LEVEL && piLevelsDone.length === MAX_PI_LEVEL;
+  const isAllClearedRef = useRef(isAllCleared);
+
+  useEffect(() => { escapeModeRef.current = escapeMode; }, [escapeMode]);
+  useEffect(() => { isAllClearedRef.current = isAllCleared; }, [isAllCleared]);
 
   const handleLogoutLocal = useCallback(() => {
     setAccessToken(null);
     setUser(null);
     setSessionId('');
     setGameState(makeInitialState(''));
-    setScreen('select');
-    setPlayer(null);
+    setScreen('intro');
+    setPlayer({ hackerName: 'GHOST', role: 'Hacktiviste', emoji: '🧑‍💻' });
   }, []);
 
   // 1. Silent Refresh au démarrage
@@ -196,10 +207,25 @@ export default function App() {
       const nCol = col + dCol;
 
       if (nRow < 0 || nRow >= MAP_ROWS || nCol < 0 || nCol >= MAP_COLS) return;
-      const tile = NETWORK_MAP[nRow]?.[nCol];
+      let tile = NETWORK_MAP[nRow]?.[nCol];
+
+      // Dynamic path unlocking around AI_CORE
+      if (isAllClearedRef.current) {
+        if ((nCol === 7 || nCol === 12) && (nRow >= 9 && nRow <= 11)) {
+          tile = TILE.FLOOR;
+        }
+      }
+
       if (tile === TILE.WALL || tile === TILE.MACHINE) return;
 
       ghostTileRef.current = { col: nCol, row: nRow };
+
+      if (escapeModeRef.current) {
+        if (nCol === GHOST_SPAWN.col && nRow === GHOST_SPAWN.row) {
+          setScreen('victory');
+          setEscapeMode(false);
+        }
+      }
 
       // Proximity detection — closest machine within 1 tile (Manhattan)
       let closestId = null;
@@ -218,13 +244,16 @@ export default function App() {
       // ORACLE message on first approach to each unlocked machine
       if (closestId && closestId !== 'kali' && closestId !== prevNearby && !oracleSentRef.current.has(closestId)) {
         const pos = MACHINE_POSITIONS[closestId];
-        const unlocked = gameStateRef.current.unlockedMachines || [];
+        const unlocked = [...(gameStateRef.current.unlockedMachines || [])];
+        if (isAllClearedRef.current) unlocked.push('mainframe');
+
         if (unlocked.includes(closestId)) {
           oracleSentRef.current.add(closestId);
           const connectHints = {
             webserver:  `nmap -sV -p 80,443 ${pos.ip}`,
             mailserver: `nmap -sV -p 25,110,143 ${pos.ip}`,
             aicore:     `nc ${pos.ip} 9999`,
+            mainframe:  `./exfiltrate_data.sh`
           };
           const hint = connectHints[closestId] || `connect ${pos.ip}`;
           writeToTermRef.current?.(
@@ -247,43 +276,59 @@ export default function App() {
   const machine = gameState.currentMachine;
   const phase   = gameState.machinePhase ?? 0;
 
-  // Start/stop countdown when game screen active
+  // Timer global (1 heure)
   useEffect(() => {
-    if (screen !== 'game') {
+    if (screen === 'game' && !escapeMode) {
+      timerRef.current = setInterval(() => {
+        setTimeLeft(t => {
+          const next = Math.max(0, t - 1);
+          setElapsed(e => e + 1);
+
+          // ORACLE warnings pushed to terminal
+          if (next === 120 && !timerWarnSent.current.at120) {
+            timerWarnSent.current.at120 = true;
+            writeToTermRef.current?.(
+              '\x1b[35mORACLE > 2 minutes. Les techniciens NEXUS remontent ta connexion.\x1b[0m\n' +
+              '\x1b[35mORACLE > Accélère. Tu n\'as plus le temps d\'hésiter.\x1b[0m'
+            );
+          }
+          if (next === 60 && !timerWarnSent.current.at60) {
+            timerWarnSent.current.at60 = true;
+            writeToTermRef.current?.(
+              '\x1b[31m⚠ ORACLE > 60 secondes. Ils arrivent. TERMINE LA MISSION.\x1b[0m'
+            );
+          }
+
+          if (next <= 0) {
+            clearInterval(timerRef.current);
+            setScreen('gameover');
+            return 0;
+          }
+          return next;
+        });
+      }, 1000);
+    } else {
       clearInterval(timerRef.current);
-      return;
     }
-    timerWarnSent.current = { at120: false, at60: false };
-    timerRef.current = setInterval(() => {
-      setTimeLeft(prev => {
-        const next = prev - 1;
-        setElapsed(e => e + 1);
+    return () => clearInterval(timerRef.current);
+  }, [screen, escapeMode]);
 
-        // ORACLE warnings pushed to terminal
-        if (next === 120 && !timerWarnSent.current.at120) {
-          timerWarnSent.current.at120 = true;
-          writeToTermRef.current?.(
-            '\x1b[35mORACLE > 2 minutes. Les techniciens NEXUS remontent ta connexion.\x1b[0m\n' +
-            '\x1b[35mORACLE > Accélère. Tu n\'as plus le temps d\'hésiter.\x1b[0m'
-          );
-        }
-        if (next === 60 && !timerWarnSent.current.at60) {
-          timerWarnSent.current.at60 = true;
-          writeToTermRef.current?.(
-            '\x1b[31m⚠ ORACLE > 60 secondes. Ils arrivent. TERMINE LA MISSION.\x1b[0m'
-          );
-        }
-
-        if (next <= 0) {
-          clearInterval(timerRef.current);
+  // Escape timer
+  useEffect(() => {
+    if (!escapeMode) return;
+    const int = setInterval(() => {
+      setEscapeTime(t => {
+        if (t <= 1) {
+          clearInterval(int);
           setScreen('gameover');
+          setEscapeMode(false);
           return 0;
         }
-        return next;
+        return t - 1;
       });
     }, 1000);
-    return () => clearInterval(timerRef.current);
-  }, [screen]);
+    return () => clearInterval(int);
+  }, [escapeMode]);
 
   // Watch for game win
   useEffect(() => {
@@ -341,8 +386,8 @@ export default function App() {
     setGameState(makeInitialState(user));
     setTimeLeft(TOTAL_SECONDS);
     setElapsed(0);
-    setPlayer(null);
-    setScreen('select');
+    setPlayer({ hackerName: 'GHOST', role: 'Hacktiviste', emoji: '🧑‍💻' });
+    setScreen('intro');
   };
 
   const handleLoginSuccess = useCallback(async (token, username) => {
@@ -359,7 +404,7 @@ export default function App() {
         const stateData = await stateRes.json();
         if (stateData) {
           setGameState(stateData);
-          setScreen(stateData.pwnedMachines?.length > 0 ? 'game' : 'select');
+          setScreen(stateData.pwnedMachines?.length > 0 ? 'game' : 'intro');
           return;
         }
       }
@@ -368,7 +413,8 @@ export default function App() {
     }
 
     setGameState(makeInitialState(username));
-    setScreen('select');
+    setPlayer({ hackerName: 'GHOST', role: 'Hacktiviste', emoji: '🧑‍💻' });
+    setScreen('intro');
   }, []);
 
   const handleLogout = useCallback(async () => {
@@ -379,11 +425,6 @@ export default function App() {
     }
     handleLogoutLocal();
   }, [handleLogoutLocal]);
-
-  const handleCharSelect = (selectedPlayer) => {
-    setPlayer(selectedPlayer);
-    setScreen('intro');
-  };
 
   // ── Screens ─────────────────────────────────────────────────────────────────
 
@@ -408,10 +449,6 @@ export default function App() {
     return <AuthForm onLoginSuccess={handleLoginSuccess} />;
   }
 
-  if (screen === 'select') {
-    return <CharacterSelect onSelect={handleCharSelect} onLogout={handleLogout} />;
-  }
-
   if (screen === 'intro') {
     return (
       <IntroScreen
@@ -423,16 +460,25 @@ export default function App() {
   }
 
   if (screen === 'gameover') {
-    return <GameOver gameState={gameState} onRestart={handleRestart} />;
+    return (
+      <GameOver
+        message={escapeTime <= 0 ? "Tracé et localisé par la Corpo. Séquence d'évasion échouée." : "Délai de session écoulé. Votre connexion a été retracée."}
+        onRetry={() => {
+          setGameState(makeInitialState(sessionId));
+          setTimeLeft(TOTAL_SECONDS);
+          setScreen('intro');
+        }}
+      />
+    );
   }
 
   if (screen === 'victory') {
     return (
       <Victory
-        hackerName={player?.hackerName || 'GHOST'}
-        gameState={gameState}
-        elapsed={elapsed}
-        onRestart={handleRestart}
+        score={elapsed}
+        onRestart={() => {
+          handleLogoutLocal();
+        }}
       />
     );
   }
@@ -456,12 +502,19 @@ export default function App() {
           timeLeft={timeLeft} 
           onLogout={handleLogout} 
           onShowScores={() => setShowScoreboard(true)} 
+          onTestEndgame={() => {
+            setLevelsDone(Array.from({ length: MAX_LEVEL }, (_, i) => i + 1));
+            setAdLevelsDone(Array.from({ length: MAX_AD_LEVEL }, (_, i) => i + 1));
+            setPiLevelsDone(Array.from({ length: MAX_PI_LEVEL }, (_, i) => i + 1));
+            showNotif("Mode Test : Toutes les salles sont terminées !", "#ff00ff");
+          }}
         />
       </div>
 
       {/* Row 2 Left: Room Map */}
       <GameMap
         gameState={gameState}
+        isAllCleared={isAllCleared}
         effect={mapEffect}
         hackerName={player?.hackerName}
         playerEmoji={player?.emoji}
@@ -478,6 +531,21 @@ export default function App() {
         </div>
       )}
 
+      {/* Bouton "Commencer le test d'intrusion" quand on approche la Web Application */}
+      {nearbyMachine === 'mailserver' && mode === 'NETWORK' && (
+        <div style={{
+          position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)',
+          zIndex: 600,
+        }}>
+          <button
+            className="cyber-btn"
+            onClick={() => setShowLevelMap(true)}
+          >
+            [ Commencer le test d'intrusion ]
+          </button>
+        </div>
+      )}
+
       {/* Bouton "Commencer le test d'intrusion" quand on approche Active Directory */}
       {nearbyMachine === 'webserver' && mode === 'NETWORK' && !adTestStarted && (
         <div style={{
@@ -485,26 +553,13 @@ export default function App() {
           zIndex: 600,
         }}>
           <button
+            className="cyber-btn"
             onClick={() => {
               setAdTestStarted(true);
               setShowADLevelMap(true);
             }}
-            style={{
-              background: 'linear-gradient(135deg, #0a0f1a, #0d1a2a)',
-              border: '1px solid #00aaff',
-              color: '#00aaff',
-              fontFamily: '"Fira Code", monospace',
-              fontSize: '13px',
-              fontWeight: 'bold',
-              padding: '10px 24px',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              boxShadow: '0 0 20px #00aaff55, 0 0 40px #00aaff22',
-              letterSpacing: '0.05em',
-              animation: 'pulse 1.8s ease-in-out infinite',
-            }}
           >
-            ▶ Commencer le test d'intrusion
+            [ Commencer le test d'intrusion ]
           </button>
         </div>
       )}
@@ -516,46 +571,48 @@ export default function App() {
           zIndex: 600,
         }}>
           <button
+            className="cyber-btn"
             onClick={() => setShowSentinel(true)}
-            style={{
-              background: 'linear-gradient(135deg, #001408, #002a10)',
-              border: '1px solid #00f0ff',
-              color: '#00f0ff',
-              fontFamily: '"Fira Code", monospace',
-              fontSize: '13px',
-              fontWeight: 'bold',
-              padding: '10px 24px',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              boxShadow: '0 0 20px #00f0ff55, 0 0 40px #00f0ff22',
-              letterSpacing: '0.05em',
-              animation: 'pulse 1.8s ease-in-out infinite',
-            }}
           >
-            🧠 Accéder à AI_CORE — SENTINEL
+            [ Accéder à AI_CORE — SENTINEL ]
           </button>
         </div>
       )}
 
+      {/* Bouton Mainframe */}
+      {nearbyMachine === 'mainframe' && isAllCleared && (
+          <div style={{
+            position: 'absolute', top: '25%', left: '50%', transform: 'translate(-50%, -50%)',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px',
+            background: 'rgba(255, 0, 0, 0.1)', padding: '20px 40px',
+            border: '1px solid #ff0000', borderRadius: '4px',
+            boxShadow: '0 0 30px rgba(255, 0, 0, 0.4)',
+            backdropFilter: 'blur(10px)',
+            zIndex: 600,
+          }}>
+            <button
+              className="cyber-btn"
+              onClick={() => setShowMainframe(true)}
+              style={{ borderColor: '#ff0000', color: '#ff0000', background: 'rgba(255,0,0,0.1)' }}
+            >
+              [ HACK NEXUS MAINFRAME ]
+            </button>
+          </div>
+        )}
 
-      {/* Bouton "Commencer le test d'intrusion" quand on approche la Web Application */}
-      {nearbyMachine === 'mailserver' && mode === 'NETWORK' && (
-        <div style={{
-          position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)',
-          zIndex: 600,
-        }}>
-          <button
-            className="cyber-btn glow"
-            onClick={() => setShowLevelMap(true)}
-            style={{
-              padding: '12px 30px',
-              fontSize: '15px',
-            }}
-          >
-            ▶ Commencer le test d'intrusion
-          </button>
-        </div>
+      {/* Mainframe View */}
+      {showMainframe && (
+        <MainframeView
+          onClose={() => setShowMainframe(false)}
+          onExfiltrate={() => {
+            setShowMainframe(false);
+            setEscapeMode(true);
+            setEscapeTime(45);
+          }}
+        />
       )}
+
+
 
       {/* Toast notification */}
       {notification && (
@@ -687,6 +744,15 @@ export default function App() {
       )}
 
       <Scoreboard visible={showScoreboard} onClose={() => setShowScoreboard(false)} />
+
+      {/* Escape Alarm & Timer */}
+      {escapeMode && screen === 'game' && <div className="escape-alarm" />}
+      {escapeMode && screen === 'game' && (
+        <div className="escape-timer-container">
+          <div style={{ fontSize: '18px' }}>ALERTE DE SÉCURITÉ</div>
+          <div style={{ fontSize: '48px', fontWeight: 'bold' }}>{escapeTime}s</div>
+        </div>
+      )}
     </div>
   );
 }

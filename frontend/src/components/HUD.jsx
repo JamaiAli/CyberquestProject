@@ -6,7 +6,7 @@ function formatTime(s) {
   return `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
 }
 
-export default function HUD({ gameState, mode, player, timeLeft, onLogout, onShowScores }) {
+export default function HUD({ gameState, mode, player, timeLeft, onLogout, onShowScores, onTestEndgame }) {
   const { xp = 0, level = 1, pwnedMachines = [], currentMachine = null, sessionId = '' } = gameState;
   const xpPct   = xp % 100;
   const pwned   = pwnedMachines.length;
@@ -60,34 +60,7 @@ export default function HUD({ gameState, mode, player, timeLeft, onLogout, onSho
         {mode === 'MACHINE' ? `💻 ${currentMachine?.name || ''}` : '🌐 VUE RÉSEAU'}
       </div>
 
-      {/* XP bar */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
-        <span style={{ color: '#ffaa00', fontSize: '10px' }}>⭐ Niv.{level}</span>
-        <div style={{ width: '60px', height: '5px', background: '#111', borderRadius: '3px', border: '1px solid #222' }}>
-          <div style={{ width: `${xpPct}%`, height: '100%', background: '#ffaa00', borderRadius: '3px', transition: 'width 0.4s' }} />
-        </div>
-        <span style={{ color: '#333', fontSize: '10px' }}>{xp}xp</span>
-      </div>
 
-      {/* Machines pwned */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
-        <span style={{ color: '#333', fontSize: '10px' }}>💀</span>
-        <div style={{ display: 'flex', gap: '3px' }}>
-          {MACHINES_META.map(m => (
-            <div key={m.id} style={{
-              width: '17px', height: '17px', borderRadius: '2px',
-              background: pwnedMachines.includes(m.id) ? '#004422' : '#0a0a0a',
-              border: `1px solid ${pwnedMachines.includes(m.id) ? '#00f0ff' : '#1a1a1a'}`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '9px', color: '#00f0ff',
-              boxShadow: pwnedMachines.includes(m.id) ? '0 0 5px #00f0ff66' : 'none',
-            }}>
-              {pwnedMachines.includes(m.id) ? '✓' : ''}
-            </div>
-          ))}
-        </div>
-        <span style={{ color: '#333', fontSize: '10px' }}>{pwned}/4</span>
-      </div>
 
       {/* Machine phases */}
       {mode === 'MACHINE' && currentMachine && (
@@ -124,6 +97,13 @@ export default function HUD({ gameState, mode, player, timeLeft, onLogout, onSho
 
       {/* Actions (Scores et Déconnexion) */}
       <div style={{ display: 'flex', gap: '8px', flexShrink: 0, paddingLeft: '6px' }}>
+        {onTestEndgame && (
+          <button className="cyber-btn glow" onClick={onTestEndgame} style={{
+            padding: '4px 10px', fontSize: '11px', borderColor: '#ff0000', color: '#ff0000'
+          }}>
+            ☢ TEST ENDGAME
+          </button>
+        )}
         {onShowScores && (
           <button className="cyber-btn glow" onClick={onShowScores} style={{
             padding: '4px 10px', fontSize: '11px',

@@ -346,24 +346,27 @@ function drawBubble(ctx, charPos, machinePos, isLocked) {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function GameMap({ ghostTileRef, nearbyMachineRef, gameState, effect, hackerName, playerEmoji }) {
+export default function GameMap({ gameState, isAllCleared, effect, hackerName, playerEmoji, ghostTileRef, nearbyMachineRef }) {
   const canvasRef = useRef(null);
+  const tickRef   = useRef(0);
   const charPos   = useRef({ x: GHOST_SPAWN.col * S + S / 2, y: GHOST_SPAWN.row * S + S / 2 });
   const animRef   = useRef(null);
-  const tickRef   = useRef(0);
 
-  // Sync gameState into a ref so the animation loop always reads fresh values
-  // without needing to restart the loop on every state change
-  const gsRef = useRef({ pwned: [], scanned: [], unlocked: ['webserver', 'mailserver'], activeId: null });
+  // Use a ref for gameState to avoid resetting the rAF loop on every React render
+  const gsRef = useRef({ pwned: [], scanned: [], unlocked: [], activeId: null, isAllCleared: false });
   useEffect(() => {
+    const unlockedList = [...(gameState?.unlockedMachines || ['webserver', 'mailserver'])];
+    if (isAllCleared) unlockedList.push('mainframe');
+
     gsRef.current = {
       pwned:    gameState?.pwnedMachines    || [],
       scanned:  gameState?.scannedMachines  || [],
-      unlocked: gameState?.unlockedMachines || ['webserver', 'mailserver'],
+      unlocked: unlockedList,
       activeId: gameState?.currentMachine?.id || null,
+      isAllCleared: isAllCleared,
     };
   }, [gameState?.pwnedMachines, gameState?.scannedMachines,
-      gameState?.unlockedMachines, gameState?.currentMachine?.id]);
+      gameState?.unlockedMachines, gameState?.currentMachine?.id, isAllCleared]);
 
   const [floats, setFloats] = useState([]);
   const addFloat = useCallback((text, color) => {
@@ -394,7 +397,7 @@ export default function GameMap({ ghostTileRef, nearbyMachineRef, gameState, eff
     const draw = () => {
       tickRef.current++;
       const t = tickRef.current;
-      const { pwned, scanned, unlocked, activeId } = gsRef.current;
+      const { pwned, scanned, unlocked, activeId, isAllCleared: loopIsAllCleared } = gsRef.current;
       const tile   = ghostTileRef?.current  || GHOST_SPAWN;
       const nearby = nearbyMachineRef?.current || null;
 
@@ -412,7 +415,12 @@ export default function GameMap({ ghostTileRef, nearbyMachineRef, gameState, eff
       // ── 2. Floor tiles (lit asphalt corridors) ───────────────────────────
       NETWORK_MAP.forEach((row, r) => {
         row.forEach((cell, c) => {
-          if (cell !== TILE.FLOOR) return;
+          let isFloor = cell === TILE.FLOOR;
+          if (loopIsAllCleared && (c === 7 || c === 12) && (r >= 9 && r <= 11)) {
+            isFloor = true;
+          }
+
+          if (!isFloor) return;
           const px = c * S, py = r * S;
           ctx.fillStyle = 'rgba(0, 20, 30, 0.4)';
           ctx.fillRect(px, py, S, S);
