@@ -1,7 +1,18 @@
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'cyberquest_access_secret_key_2031';
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'cyberquest_refresh_secret_key_2031';
+// Les secrets JWT proviennent EXCLUSIVEMENT de l'environnement (backend/.env).
+// Aucune valeur en dur : un secret en clair dans le code source est exploitable
+// par quiconque accède au dépôt (forge des jetons d'accès). Générer la valeur via :
+//   node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
+const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
+
+if (!JWT_SECRET || !JWT_REFRESH_SECRET) {
+  throw new Error(
+    'JWT_SECRET et JWT_REFRESH_SECRET doivent être définis dans backend/.env. ' +
+    'Génère-les avec : node -e "console.log(require(\'crypto\').randomBytes(48).toString(\'hex\'))"'
+  );
+}
 
 function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
