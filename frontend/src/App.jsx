@@ -71,7 +71,7 @@ export default function App() {
   const [showLevelMap, setShowLevelMap]   = useState(false);
   const [activeLevel, setActiveLevel]     = useState(null); // 1..4 web-app level open
   const [levelsDone, setLevelsDone]       = useState([]);
-  const [adTestStarted, setAdTestStarted]   = useState(false);
+
   const [showADLevelMap, setShowADLevelMap] = useState(false);
   const [activeADLevel, setActiveADLevel]   = useState(null);
   const [adLevelsDone, setAdLevelsDone]     = useState([]);
@@ -547,7 +547,7 @@ export default function App() {
       )}
 
       {/* Bouton "Commencer le test d'intrusion" quand on approche Active Directory */}
-      {nearbyMachine === 'webserver' && mode === 'NETWORK' && !adTestStarted && (
+      {nearbyMachine === 'webserver' && mode === 'NETWORK' && (
         <div style={{
           position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)',
           zIndex: 600,
@@ -555,7 +555,6 @@ export default function App() {
           <button
             className="cyber-btn"
             onClick={() => {
-              setAdTestStarted(true);
               setShowADLevelMap(true);
             }}
           >
