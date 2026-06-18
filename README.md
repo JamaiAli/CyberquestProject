@@ -167,8 +167,7 @@ sequenceDiagram
  participant UI as App.jsx (React)
  participant GM as GameMap (Canvas)
  participant T as Terminal (xterm.js)
- participant B as Backend (Express)
- participant CE as commandEngine.js
+ participant CE as commandEngine.js (Local)
 
  P->>UI: Sélectionne personnage + alias
  UI->>UI: screen = 'intro'
@@ -192,11 +191,9 @@ sequenceDiagram
  note over P,CE: Commandes pentest dans le terminal
  loop Commande soumise
  P->>T: tape commande (ex : nmap -sV 192.168.1.10)
- T->>B: POST /api/command {command, sessionId}
- B->>CE: route vers handler
+ T->>CE: handleCommand(command, state)
  CE->>CE: vérifie phase · met à jour gameState
- CE-->>B: {output, newState, effect, pedagogie}
- B-->>T: réponse JSON
+ CE-->>T: {output, newState, effect, pedagogie}
  T-->>P: affiche output (ANSI colors)
  UI->>GM: gameState mis à jour → redessine carte
  GM-->>P: bâtiment change couleur · câble devient vert
@@ -247,14 +244,13 @@ graph TB
  PP["PedaPanel.jsx\nguide contextuel\nindices par phase"]
  end
 
- MAP["map.js\nNETWORK_MAP 20×14\nGHOST_SPAWN\nMACHINE_POSITIONS\nCABLE_LINKS"]
+ subgraph Engine["Moteur Logique (Standalone)"]
+ CE["commandEngine.js\nnmap · cd · recon\nphases · flags · ORACLE"]
+ GS["gameState.js\nÉtat local (localStorage)\nxp · level · gameWon"]
+ CU["cryptoUtils.js\nChiffrement de sauvegarde"]
  end
 
- subgraph BE[" Backend — Node.js + Express (port 3001)"]
- direction TB
- SRV["server.js\nPOST /api/command\nGET /api/state"]
- CE["commandEngine.js\nnmap · cd · recon · sqlmap\nhydra · cat /flag.txt\nphases · flags · ORACLE\nmessages ANSI colorés"]
- GS["gameState.js\nMap sessionId → state\npwnedMachines · phase\nxp · level · gameWon"]
+ MAP["map.js\nNETWORK_MAP 20×14\nGHOST_SPAWN\nMACHINE_POSITIONS\nCABLE_LINKS"]
  end
 
  App -->|"affiche selon screen"| CS & IS & GO & VIC
@@ -263,18 +259,18 @@ graph TB
  App -->|"importe GHOST_SPAWN\nMACHINE_POSITIONS"| MAP
 
  App -->|"ghostTileRef\nnearbyMachineRef"| GM
- App -->|"onWriteRef → ORACLE alerts\nonCommand → POST"| TRM
- TRM -->|"POST /api/command\n{command, sessionId}"| SRV
- SRV --> CE
+ App -->|"onWriteRef → ORACLE alerts"| TRM
+ TRM -->|"handleCommand(cmd)"| CE
  CE <-->|"lecture / écriture"| GS
- SRV -->|"{output, newState,\neffect, pedagogie}"| TRM
+ CE -->|"{output, newState}"| TRM
  TRM -->|"newState"| App
  App -->|"gameState"| GM & HUD & MV & PP
+ CU -->|"Signature"| GS
 
  style FE fill:#001a00,stroke:#00ff41,color:#00ff41
- style BE fill:#00001a,stroke:#0066ff,color:#88aaff
  style APP fill:#002200
  style MAP fill:#001122
+ style Engine fill:#002211,stroke:#00ffaa
 ```
 
 ---
@@ -283,13 +279,12 @@ graph TB
 
 ```
 cyberquest/
-├── backend/
-│ ├── engine/
-│ │ ├── commandEngine.js # Moteur de jeu : commandes, scénarios, flags
-│ │ └── gameState.js # Sessions en mémoire (Map par sessionId)
-│ └── server.js # API Express — POST /api/command, GET /api/state
 └── frontend/
  └── src/
+ ├── engine/
+ │ ├── commandEngine.js # Moteur de jeu local : commandes, scénarios, flags
+ │ ├── gameState.js # Gestion d'état local et persistance (localStorage)
+ │ └── cryptoUtils.js # Signatures de sécurité des sauvegardes
  ├── map.js # Tilemap 20×14 : grille, positions machines, câbles
  ├── components/
  │ ├── CharacterSelect.jsx # Sélection GHOST/PHANTOM/VIPER
@@ -310,12 +305,12 @@ cyberquest/
 
 ## Technologies
 
-| Côté | Stack |
-|------|-------|
-| Frontend | React 18, Vite, HTML Canvas 2D, xterm.js v5 |
-| Backend | Node.js 18, Express |
+| Composant | Stack |
+|-----------|-------|
+| Application | React 18, Vite, HTML Canvas 2D, xterm.js v5 |
+| Sécurité CSP | Meta balise stricte intégrée |
 | Audio | Web Audio API (aucun fichier audio) |
-| État jeu | Sessions en mémoire côté backend (Map), refs côté frontend |
+| État jeu | Sauvegardes chiffrées signées (localStorage) |
 | Graphismes | Canvas `requestAnimationFrame` + lerp pour les animations |
 
 ---
