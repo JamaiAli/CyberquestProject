@@ -13,6 +13,7 @@ import IntroScreen from './components/IntroScreen';
 import GameOver from './components/GameOver';
 import Victory from './components/Victory';
 import AuthForm from './components/AuthForm';
+import DisclaimerScreen from './components/DisclaimerScreen';
 import { GHOST_SPAWN, NETWORK_MAP, MACHINE_POSITIONS, TILE, MAP_ROWS, MAP_COLS } from './map.js';
 import { MAX_LEVEL } from './levels/webLevels';
 import { MAX_AD_LEVEL } from './levels/adLevels';
@@ -47,6 +48,7 @@ export default function App() {
   const [accessToken, setAccessToken] = useState(null);
   const [user, setUser]               = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [showDisclaimer, setShowDisclaimer] = useState(true);
   const [screen, setScreen]       = useState('select'); // 'select' | 'intro' | 'game' | 'gameover' | 'victory'
   const [player, setPlayer]       = useState(null);
   const [sessionId, setSessionId] = useState('');
@@ -374,6 +376,11 @@ export default function App() {
   };
 
   // ── Screens ─────────────────────────────────────────────────────────────────
+
+  // Show the CyVerse-style disclaimer/landing page BEFORE everything else
+  if (showDisclaimer) {
+    return <DisclaimerScreen onAccept={() => setShowDisclaimer(false)} />;
+  }
 
   if (authLoading) {
     return (
