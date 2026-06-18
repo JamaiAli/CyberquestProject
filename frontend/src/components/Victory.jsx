@@ -20,8 +20,8 @@ export default function Victory({ hackerName, gameState, elapsed, onRestart }) {
       <style>{`
         @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
         @keyframes glow {
-          0%, 100% { text-shadow: 0 0 10px #00ff41, 0 0 20px #00ff41; }
-          50%       { text-shadow: 0 0 20px #00ff41, 0 0 40px #00ff41, 0 0 60px #00ff41; }
+          0%, 100% { text-shadow: 0 0 10px #00f0ff, 0 0 20px #00f0ff; }
+          50%       { text-shadow: 0 0 20px #00f0ff, 0 0 40px #00f0ff, 0 0 60px #00f0ff; }
         }
       `}</style>
 
@@ -32,7 +32,7 @@ export default function Victory({ hackerName, gameState, elapsed, onRestart }) {
         height: '100%', animation: 'fadeIn 1s ease',
       }}>
         <div style={{
-          color: '#00ff41', fontSize: '32px', fontWeight: 'bold',
+          color: '#00f0ff', fontSize: '32px', fontWeight: 'bold',
           letterSpacing: '6px', marginBottom: '6px',
           animation: 'glow 2s ease-in-out infinite',
         }}>
@@ -44,14 +44,14 @@ export default function Victory({ hackerName, gameState, elapsed, onRestart }) {
         </div>
 
         <div style={{
-          border: '1px solid #00ff4144', padding: '24px 36px',
+          border: '1px solid #00f0ff44', padding: '24px 36px',
           minWidth: '420px', marginBottom: '28px',
           background: 'rgba(0,10,0,0.8)',
         }}>
           <div style={{ color: '#224422', fontSize: '10px', letterSpacing: '2px', marginBottom: '14px' }}>
             RAPPORT DE MISSION — {hackerName}
           </div>
-          <div style={{ color: '#00ff41', fontSize: '14px', marginBottom: '14px', fontWeight: 'bold' }}>
+          <div style={{ color: '#00f0ff', fontSize: '14px', marginBottom: '14px', fontWeight: 'bold' }}>
             🚩 FLAG FINAL : {FLAG}
           </div>
           <div style={{ color: '#2a4a2a', fontSize: '11px', lineHeight: '2' }}>
@@ -70,12 +70,12 @@ export default function Victory({ hackerName, gameState, elapsed, onRestart }) {
         <button
           onClick={onRestart}
           style={{
-            background: 'transparent', border: '1px solid #00ff41',
-            color: '#00ff41', padding: '10px 32px',
+            background: 'transparent', border: '1px solid #00f0ff',
+            color: '#00f0ff', padding: '10px 32px',
             fontFamily: 'monospace', fontSize: '12px',
             cursor: 'pointer', letterSpacing: '2px',
           }}
-          onMouseEnter={e => { e.target.style.background = '#00ff4115'; }}
+          onMouseEnter={e => { e.target.style.background = '#00f0ff15'; }}
           onMouseLeave={e => { e.target.style.background = 'transparent'; }}
         >
           [ NOUVELLE MISSION ]

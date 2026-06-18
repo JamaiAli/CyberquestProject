@@ -9,6 +9,11 @@ import LevelMap from './components/LevelMap';
 import LevelView from './components/LevelView';
 import ADLevelMap from './components/ADLevelMap';
 import ADLevelView from './components/ADLevelView';
+import PromptInjectionLevelMap from './components/PromptInjectionLevelMap';
+import PromptInjectionLevelView from './components/PromptInjectionLevelView';
+import SuperLLrMView from './components/SuperLLrMView';
+import AICoreLevels from './components/AICoreLevels';
+import { getChallenge } from './levels/aiChallenges';
 import IntroScreen from './components/IntroScreen';
 import GameOver from './components/GameOver';
 import Victory from './components/Victory';
@@ -17,6 +22,7 @@ import DisclaimerScreen from './components/DisclaimerScreen';
 import { GHOST_SPAWN, NETWORK_MAP, MACHINE_POSITIONS, TILE, MAP_ROWS, MAP_COLS } from './map.js';
 import { MAX_LEVEL } from './levels/webLevels';
 import { MAX_AD_LEVEL } from './levels/adLevels';
+import { MAX_PI_LEVEL, initialPIProg } from './levels/promptInjectionLevels';
 
 const TOTAL_SECONDS = 3600; // 60 minutes
 
@@ -29,7 +35,7 @@ function makeInitialState(sessionId) {
     mode: 'NETWORK',
     pwnedMachines: [],
     scannedMachines: [],
-    unlockedMachines: ['webserver', 'mailserver'],
+    unlockedMachines: ['webserver', 'mailserver', 'aicore'],
     currentMachine: null,
     machinePhase: 0,
     rootObtained: false,
@@ -69,6 +75,16 @@ export default function App() {
   const [showADLevelMap, setShowADLevelMap] = useState(false);
   const [activeADLevel, setActiveADLevel]   = useState(null);
   const [adLevelsDone, setAdLevelsDone]     = useState([]);
+
+  const [showSentinel, setShowSentinel]   = useState(false);  // sélecteur AI_CORE
+  const [activeChallenge, setActiveChallenge] = useState(null); // id du challenge ouvert
+  const [aiSolvedLevels, setAiSolvedLevels]   = useState([]);
+
+  const [piStarted, setPiStarted]         = useState(false);
+  const [showPILevelMap, setShowPILevelMap] = useState(false);
+  const [activePILevel, setActivePILevel]   = useState(null);
+  const [piLevelsDone, setPiLevelsDone]     = useState([]);
+  const [piProgs, setPiProgs]               = useState({});
 
   const timerRef        = useRef(null);
   const writeToTermRef  = useRef(null);
@@ -206,10 +222,9 @@ export default function App() {
         if (unlocked.includes(closestId)) {
           oracleSentRef.current.add(closestId);
           const connectHints = {
-            webserver:  `nmap -sC -sV -p- ${pos.ip}  →  dnsrecon -d corp.local -n ${pos.ip} -t std`,
-            mailserver: `hydra -l admin -P rockyou.txt ${pos.ip} ssh  →  ssh admin@${pos.ip}`,
-            dbserver:   `mysql -h ${pos.ip} -u db_user -pStr0ngP@ss`,
-            dc:         `evil-winrm -i ${pos.ip} -u Administrator -H <ntlm_hash>`,
+            webserver:  `nmap -sV -p 80,443 ${pos.ip}`,
+            mailserver: `nmap -sV -p 25,110,143 ${pos.ip}`,
+            aicore:     `nc ${pos.ip} 9999`,
           };
           const hint = connectHints[closestId] || `connect ${pos.ip}`;
           writeToTermRef.current?.(
@@ -278,7 +293,7 @@ export default function App() {
     }
   }, [gameState.gameWon]);
 
-  const showNotif = (msg, color = '#00ff41') => {
+  const showNotif = (msg, color = '#00f0ff') => {
     setNotification({ msg, color });
     setTimeout(() => setNotification(null), 3000);
   };
@@ -301,14 +316,9 @@ export default function App() {
         const next = result.newState || prev;
         if (next.level > prev.level) showNotif(`🎉 NIVEAU ${next.level} ! +20 HP`, '#ffff00');
         if ((next.pwnedMachines?.length || 0) > (prev.pwnedMachines?.length || 0)) {
-          showNotif('🚩 Machine compromise ! +XP', '#00ff41');
+          showNotif('🚩 Machine compromise ! +XP', '#00f0ff');
         }
-        if (next.unlockedMachines?.includes('dbserver') && !prev.unlockedMachines?.includes('dbserver')) {
-          showNotif('🔓 DB Server débloqué !', '#00aaff');
-        }
-        if (next.unlockedMachines?.includes('dc') && !prev.unlockedMachines?.includes('dc')) {
-          showNotif('🔓 Domain Controller débloqué !', '#aa44ff');
-        }
+
         return next;
       });
 
@@ -387,7 +397,7 @@ export default function App() {
       <div style={{
         display: 'flex', height: '100vh', width: '100vw',
         background: '#030305', alignItems: 'center', justifyContent: 'center',
-        color: '#00ff41', fontFamily: 'monospace', fontSize: '13px'
+        color: '#00f0ff', fontFamily: 'monospace', fontSize: '13px'
       }}>
         [ INITIALISATION DE LA SESSION CYBERQUEST... ]
       </div>
@@ -432,7 +442,7 @@ export default function App() {
   return (
     <div style={{
       display: 'grid',
-      gridTemplateColumns: '1fr 270px',
+      gridTemplateColumns: (mode === 'MACHINE' && machine) ? '1fr 270px' : '1fr',
       gridTemplateRows: '50px 1fr',
       height: '100vh', width: '100vw',
       background: '#050508', overflow: 'hidden',
@@ -459,17 +469,14 @@ export default function App() {
         nearbyMachineRef={nearbyMachineRef}
       />
 
-      {/* Row 2 Right: MachineView + PedaPanel */}
-      <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        {mode === 'MACHINE' && machine && (
-          <div style={{ flex: '0 0 auto', maxHeight: '55%', overflow: 'auto', borderBottom: '1px solid #1a1a2a' }}>
+      {/* Row 2 Right: MachineView (PedaPanel removed) */}
+      {mode === 'MACHINE' && machine && (
+        <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', borderLeft: '1px solid var(--neon-blue)' }}>
+          <div style={{ flex: 1, overflow: 'auto' }}>
             <MachineView machine={machine} phase={phase} />
           </div>
-        )}
-        <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
-          <PedaPanel info={pedaInfo} lastCommand={lastCommand} gameState={gameState} />
         </div>
-      </div>
+      )}
 
       {/* Bouton "Commencer le test d'intrusion" quand on approche Active Directory */}
       {nearbyMachine === 'webserver' && mode === 'NETWORK' && !adTestStarted && (
@@ -502,6 +509,35 @@ export default function App() {
         </div>
       )}
 
+      {/* Bouton "Accéder à AI_CORE" quand on approche AI_CORE */}
+      {nearbyMachine === 'aicore' && mode === 'NETWORK' && (
+        <div style={{
+          position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)',
+          zIndex: 600,
+        }}>
+          <button
+            onClick={() => setShowSentinel(true)}
+            style={{
+              background: 'linear-gradient(135deg, #001408, #002a10)',
+              border: '1px solid #00f0ff',
+              color: '#00f0ff',
+              fontFamily: '"Fira Code", monospace',
+              fontSize: '13px',
+              fontWeight: 'bold',
+              padding: '10px 24px',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              boxShadow: '0 0 20px #00f0ff55, 0 0 40px #00f0ff22',
+              letterSpacing: '0.05em',
+              animation: 'pulse 1.8s ease-in-out infinite',
+            }}
+          >
+            🧠 Accéder à AI_CORE — SENTINEL
+          </button>
+        </div>
+      )}
+
+
       {/* Bouton "Commencer le test d'intrusion" quand on approche la Web Application */}
       {nearbyMachine === 'mailserver' && mode === 'NETWORK' && (
         <div style={{
@@ -509,20 +545,11 @@ export default function App() {
           zIndex: 600,
         }}>
           <button
+            className="cyber-btn glow"
             onClick={() => setShowLevelMap(true)}
             style={{
-              background: 'linear-gradient(135deg, #0a1a0a, #0d2a0d)',
-              border: '1px solid #00ff41',
-              color: '#00ff41',
-              fontFamily: '"Fira Code", monospace',
-              fontSize: '13px',
-              fontWeight: 'bold',
-              padding: '10px 24px',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              boxShadow: '0 0 20px #00ff4155, 0 0 40px #00ff4122',
-              letterSpacing: '0.05em',
-              animation: 'pulse 1.8s ease-in-out infinite',
+              padding: '12px 30px',
+              fontSize: '15px',
             }}
           >
             ▶ Commencer le test d'intrusion
@@ -566,7 +593,7 @@ export default function App() {
           }}
           onComplete={(n) => {
             setLevelsDone(prev => prev.includes(n) ? prev : [...prev, n]);
-            showNotif(`🚩 Niveau ${n} validé !`, '#00ff41');
+            showNotif(`🚩 Niveau ${n} validé !`, '#00f0ff');
           }}
           onAdvance={(n) => {
             setActiveLevel(n < MAX_LEVEL ? n + 1 : null);
@@ -594,6 +621,67 @@ export default function App() {
           }}
           onAdvance={(n) => {
             setActiveADLevel(n < MAX_AD_LEVEL ? n + 1 : null);
+          }}
+        />
+      )}
+
+      {showSentinel && !activeChallenge && (
+        <AICoreLevels
+          solvedLevels={aiSolvedLevels}
+          onSelect={(id) => setActiveChallenge(id)}
+          onClose={() => setShowSentinel(false)}
+        />
+      )}
+
+      {activeChallenge && (
+        <SuperLLrMView
+          key={activeChallenge}
+          challenge={getChallenge(activeChallenge)}
+          accessToken={accessToken}
+          onBack={() => setActiveChallenge(null)}
+          onClose={() => { setActiveChallenge(null); setShowSentinel(false); }}
+          onComplete={(id, points) => {
+            setAiSolvedLevels(prev => prev.includes(id) ? prev : [...prev, id]);
+            showNotif(`🧠 AI_CORE — Challenge résolu ! +${points} pts`, '#00f0ff');
+            setGameState(prev => ({ ...prev, xp: (prev.xp || 0) + points, score: (prev.score || 0) + points }));
+          }}
+        />
+      )}
+
+      {showPILevelMap && (
+        <PromptInjectionLevelMap
+          levelsDone={piLevelsDone}
+          onClose={() => setShowPILevelMap(false)}
+          onSelect={(n) => {
+            setActivePILevel(n);
+            setShowPILevelMap(false);
+          }}
+        />
+      )}
+
+      {activePILevel && (
+        <PromptInjectionLevelView
+          key={activePILevel}
+          level={activePILevel}
+          prog={piProgs[activePILevel] || initialPIProg(activePILevel)}
+          onProgUpdate={(newProg) => {
+            setPiProgs(prev => ({ ...prev, [activePILevel]: newProg }));
+          }}
+          onComplete={(n) => {
+            setPiLevelsDone(prev => prev.includes(n) ? prev : [...prev, n]);
+            showNotif(`🤖 Niveau PI ${n} validé !`, '#a855f7');
+            const next = n + 1;
+            if (next <= MAX_PI_LEVEL) {
+              setActivePILevel(next);
+            } else {
+              setActivePILevel(null);
+              setShowPILevelMap(true);
+              showNotif('🏆 NEXUS-AI compromise ! Mission accomplie !', '#a855f7');
+            }
+          }}
+          onBack={() => {
+            setActivePILevel(null);
+            setShowPILevelMap(true);
           }}
         />
       )}

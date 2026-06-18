@@ -5,38 +5,36 @@ export default function IntroScreen({ hackerName, onDone, onLogout }) {
   const [done, setDone] = useState(false);
 
   const SEQUENCE = [
-    { text: '> Initialisation du système...', color: '#00ff41', delay: 0 },
-    { text: '> Connexion VPN chiffrée......... [OK]', color: '#00ff41', delay: 700 },
-    { text: '> Tor routing activé............. [OK]', color: '#00ff41', delay: 1300 },
-    { text: '> Identité masquée............... [OK]', color: '#00ff41', delay: 1900 },
+    { text: '> Séquence d\'amorçage du terminal...', color: 'var(--neon-blue)', delay: 0 },
+    { text: '> Connexion au réseau fantôme......... [OK]', color: 'var(--neon-blue)', delay: 700 },
+    { text: '> Routage quantique activé............ [OK]', color: 'var(--neon-blue)', delay: 1300 },
+    { text: '> Brouillage de l\'empreinte........... [OK]', color: 'var(--neon-blue)', delay: 1900 },
     { text: '', delay: 2400 },
-    { text: '> MISSION : Infiltrer NEXUS Corp', color: '#ffff00', delay: 2900 },
-    { text: '> Réseau cible : 192.168.1.0/24', color: '#ffff00', delay: 3500 },
-    { text: '> Niveau de sécurité : CRITIQUE', color: '#ff3300', delay: 4100 },
-    { text: '', delay: 4600 },
-    { text: `> Opérateur identifié : ${hackerName}`, color: '#00ffff', delay: 5000 },
-    { text: '> Tu as 6 minutes avant d\'être tracé.', color: '#ff6600', delay: 5600 },
-    { text: '', delay: 6100 },
-    { text: '> ORACLE > Bienvenue, ' + hackerName + '. Le réseau est en face de toi.', color: '#cc44ff', delay: 6500 },
-    { text: '> ORACLE > Commence par nmap 192.168.1.0/24', color: '#cc44ff', delay: 7300 },
-    { text: '> ORACLE > Et surtout... ne te fais pas tracer.', color: '#cc44ff', delay: 8000 },
-    { text: '', delay: 8700 },
+    { text: '> CIBLE : Architecture NEXUS Corp', color: 'var(--neon-pink)', delay: 2900 },
+    { text: '> Niveau de menace : CRITIQUE', color: '#ff2200', delay: 3500 },
+    { text: '', delay: 4100 },
+    { text: `> Bienvenue dans les ombres, Opérateur ${hackerName}.`, color: '#00ffcc', delay: 4500 },
+    { text: '> ORACLE > Ta cible ultime est AI_CORE.', color: 'var(--neon-pink)', delay: 5200 },
+    { text: '> ORACLE > Infiltre l\'Active Directory pour ouvrir la voie.', color: 'var(--neon-pink)', delay: 6000 },
+    { text: '> ORACLE > Ne laisse aucune trace.', color: '#00ffcc', delay: 6800 },
+    { text: '', delay: 7500 },
   ];
 
   useEffect(() => {
     const timers = SEQUENCE.map(({ text, color, delay }) =>
       setTimeout(() => setLines(l => [...l, { text, color }]), delay)
     );
-    const done = setTimeout(() => setDone(true), 8900);
+    const done = setTimeout(() => setDone(true), 7700);
     return () => { timers.forEach(clearTimeout); clearTimeout(done); };
   }, []);
 
   return (
     <div style={{
-      position: 'fixed', inset: 0, background: '#000',
+      position: 'fixed', inset: 0, background: 'radial-gradient(circle at 50% 50%, #040914 0%, #010205 100%)',
       display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center',
-      fontFamily: '"Fira Code", monospace',
+      fontFamily: '"Rajdhani", "Fira Code", monospace',
+      zIndex: 10000
     }}>
       {onLogout && (
         <button
@@ -71,31 +69,44 @@ export default function IntroScreen({ hackerName, onDone, onLogout }) {
           ❌ DECONNEXION
         </button>
       )}
-      <div style={{ width: '560px', maxWidth: '90vw' }}>
-        {lines.map((l, i) => (
+      <div style={{ position: 'relative' }}>
+        <div className="cyber-panel" style={{ 
+          width: '600px', maxWidth: '90vw', 
+          padding: '40px', 
+          background: 'rgba(2, 5, 12, 0.85)', 
+          border: '1px solid rgba(0, 240, 255, 0.3)',
+          borderTop: '2px solid var(--neon-pink)',
+          boxShadow: '0 0 30px rgba(0, 240, 255, 0.05), inset 0 0 20px rgba(0, 240, 255, 0.02)', 
+          position: 'relative' 
+        }}>
+          {lines.map((l, i) => (
           <div key={i} style={{
-            color: l.color || '#00ff41', fontSize: '13px',
-            lineHeight: '2', animation: 'fadeIn 0.2s ease',
+            color: l.color || 'var(--neon-blue)', fontSize: '15px', fontWeight: '500',
+            lineHeight: '2.2', animation: 'fadeIn 0.2s ease',
+            textShadow: `0 0 8px ${l.color || 'var(--neon-blue)'}`
           }}>
             {l.text}
           </div>
         ))}
-        {/* Blinking cursor */}
-        <span style={{ color: '#00ff41', animation: 'blink 1s step-end infinite', fontSize: '13px' }}>█</span>
+          {/* Blinking cursor */}
+          <span style={{ color: 'var(--neon-blue)', animation: 'blink 1s step-end infinite', fontSize: '15px', textShadow: '0 0 8px var(--neon-blue)' }}>█</span>
+        </div>
+        <div className="cyber-font" style={{ position: 'absolute', top: '-12px', right: '20px', background: '#02050c', padding: '0 10px', color: 'var(--neon-pink)', fontSize: '14px', letterSpacing: '2px', zIndex: 10 }}>
+          SYS.BOOT
+        </div>
       </div>
 
       {done && (
         <button
+          className="cyber-button"
           onClick={onDone}
           style={{
-            marginTop: '40px', background: 'transparent',
-            border: '1px solid #00ff41', color: '#00ff41',
-            padding: '10px 36px', fontFamily: 'monospace',
-            fontSize: '13px', cursor: 'pointer', letterSpacing: '2px',
+            marginTop: '50px',
+            padding: '12px 40px',
+            fontSize: '16px',
+            letterSpacing: '3px',
             animation: 'fadeIn 0.5s ease',
           }}
-          onMouseEnter={e => { e.target.style.background = '#00ff4115'; }}
-          onMouseLeave={e => { e.target.style.background = 'transparent'; }}
         >
           [ COMMENCER L'INFILTRATION ]
         </button>

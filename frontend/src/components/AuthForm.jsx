@@ -56,7 +56,7 @@ export default function AuthForm({ onLoginSuccess }) {
       color = '#00cc44';
     } else if (score === 5) {
       label = 'Excellent (parfait)';
-      color = '#00ff41';
+      color = '#00f0ff';
     }
 
     setPasswordStrength({ score, label, color });
@@ -277,7 +277,7 @@ export default function AuthForm({ onLoginSuccess }) {
                   disabled={loading}
                 >
                   {SECURITY_QUESTIONS.map((q, idx) => (
-                    <option key={idx} value={q} style={{ background: '#050a05', color: '#00ff41' }}>
+                    <option key={idx} value={q} style={{ background: '#050a05', color: '#00f0ff' }}>
                       {q}
                     </option>
                   ))}
@@ -304,7 +304,7 @@ export default function AuthForm({ onLoginSuccess }) {
             <>
               <div style={{ marginBottom: '15px', padding: '10px', background: 'rgba(0, 20, 0, 0.4)', border: '1px solid #1a3a20', borderRadius: '3px' }}>
                 <span style={{ color: '#888', fontSize: '9px', display: 'block', marginBottom: '4px' }}>QUESTION DE SÉCURITÉ :</span>
-                <span style={{ color: '#00ff41', fontSize: '12px', fontWeight: 'bold' }}>{fetchedQuestion}</span>
+                <span style={{ color: '#00f0ff', fontSize: '12px', fontWeight: 'bold' }}>{fetchedQuestion}</span>
               </div>
 
               <div style={inputGroupStyle}>
@@ -396,7 +396,7 @@ export default function AuthForm({ onLoginSuccess }) {
           <div
             onClick={() => { setMode('login'); setError(''); setSuccess(''); setUsername(''); setPassword(''); }}
             style={forgotPasswordLinkStyle}
-            onMouseEnter={(e) => e.target.style.color = '#00ff41'}
+            onMouseEnter={(e) => e.target.style.color = '#00f0ff'}
             onMouseLeave={(e) => e.target.style.color = '#4a8a5f'}
           >
             ← Retour à la connexion
@@ -426,7 +426,7 @@ const cardStyle = {
   position: 'relative',
   zIndex: 10,
   background: 'rgba(5, 10, 5, 0.85)',
-  border: '1.5px solid #00ff41',
+  border: '1.5px solid #00f0ff',
   borderRadius: '6px',
   boxShadow: '0 0 30px rgba(0, 255, 65, 0.15), inset 0 0 15px rgba(0, 255, 65, 0.05)',
   padding: '30px 25px',
@@ -447,7 +447,7 @@ const titleStyle = {
 };
 
 const subtitleStyle = {
-  color: '#00ff41',
+  color: '#00f0ff',
   fontSize: '9px',
   letterSpacing: '2px',
   opacity: 0.8
@@ -476,8 +476,8 @@ const tabStyle = {
 };
 
 const tabActiveStyle = {
-  color: '#00ff41',
-  borderBottomColor: '#00ff41',
+  color: '#00f0ff',
+  borderBottomColor: '#00f0ff',
   textShadow: '0 0 10px rgba(0, 255, 65, 0.4)'
 };
 
@@ -505,7 +505,7 @@ const inputStyle = {
   background: 'rgba(0, 0, 0, 0.6)',
   border: '1px solid #1a3a20',
   borderRadius: '3px',
-  color: '#00ff41',
+  color: '#00f0ff',
   fontFamily: 'monospace',
   fontSize: '13px',
   padding: '10px 12px',
@@ -522,7 +522,7 @@ const togglePasswordBtnStyle = {
   transform: 'translateY(-50%)',
   background: 'transparent',
   border: 'none',
-  color: '#00ff41',
+  color: '#00f0ff',
   cursor: 'pointer',
   fontSize: '14px',
   outline: 'none',
@@ -546,9 +546,9 @@ const strengthBarStyle = {
 
 const submitBtnStyle = {
   background: 'linear-gradient(180deg, rgba(0, 50, 10, 0.6), rgba(0, 20, 5, 0.8))',
-  border: '1.5px solid #00ff41',
+  border: '1.5px solid #00f0ff',
   borderRadius: '4px',
-  color: '#00ff41',
+  color: '#00f0ff',
   cursor: 'pointer',
   fontFamily: 'inherit',
   fontSize: '12px',
@@ -573,9 +573,9 @@ const errorStyle = {
 
 const successStyle = {
   background: 'rgba(0, 255, 65, 0.08)',
-  border: '1px solid #00ff41',
+  border: '1px solid #00f0ff',
   borderRadius: '3px',
-  color: '#00ff41',
+  color: '#00f0ff',
   fontSize: '11px',
   padding: '8px 10px',
   marginBottom: '15px'

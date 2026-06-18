@@ -48,12 +48,11 @@ export default function CharacterSelect({ onSelect, onLogout }) {
 
   return (
     <div style={{
-      position: 'fixed', inset: 0, background: '#000',
+      position: 'fixed', inset: 0, background: 'var(--bg)',
       display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center',
-      fontFamily: '"Fira Code", monospace', overflow: 'hidden',
+      fontFamily: '"Rajdhani", monospace', overflow: 'hidden',
     }}>
-      <MatrixRain opacity={0.08} />
 
       {onLogout && (
         <button
@@ -91,13 +90,13 @@ export default function CharacterSelect({ onSelect, onLogout }) {
 
       <div style={{ position: 'relative', zIndex: 10, textAlign: 'center', maxWidth: '800px', padding: '0 20px' }}>
         {/* Title */}
-        <div style={{ color: '#ff0000', fontSize: '34px', fontWeight: 'bold', letterSpacing: '6px', marginBottom: '4px', textShadow: '0 0 20px #ff000088' }}>
+        <div className="cyber-font glow" style={{ color: 'var(--neon-pink)', fontSize: '40px', fontWeight: 'bold', letterSpacing: '6px', marginBottom: '4px' }}>
           ⚡ CYBERQUEST
         </div>
-        <div style={{ color: '#333', fontSize: '11px', letterSpacing: '3px', marginBottom: '8px' }}>
-          NEXUS CORP INFILTRATION — 2031
+        <div style={{ color: 'var(--neon-blue)', fontSize: '13px', letterSpacing: '3px', marginBottom: '8px', textTransform: 'uppercase' }}>
+          NEXUS CORP INFILTRATION — 2077
         </div>
-        <div style={{ color: '#1a4a1a', fontSize: '11px', marginBottom: '36px', lineHeight: '1.6' }}>
+        <div style={{ color: '#a0a0ff', fontSize: '12px', marginBottom: '36px', lineHeight: '1.6' }}>
           La mégacorporation NEXUS Corp a volé les données de 50 millions de citoyens.<br />
           Tu es leur seul espoir. Infiltre leur réseau. Récupère les preuves. Tout balancer.
         </div>
@@ -107,24 +106,24 @@ export default function CharacterSelect({ onSelect, onLogout }) {
           {CHARACTERS.map(char => {
             const isSel = selected?.id === char.id;
             return (
-              <div key={char.id} onClick={() => setSelected(char)} style={{
+              <div key={char.id} className={isSel ? "cyber-panel" : ""} onClick={() => setSelected(char)} style={{
                 width: '210px', padding: '18px 16px', cursor: 'pointer',
-                background: isSel ? '#060f06' : '#050505',
-                border: `2px solid ${isSel ? '#00ff41' : '#1a1a1a'}`,
-                borderRadius: '4px', transition: 'all 0.15s',
+                background: isSel ? 'rgba(10, 10, 26, 0.8)' : 'rgba(5, 5, 10, 0.6)',
+                border: `1px solid ${isSel ? 'var(--neon-blue)' : '#2a2a4a'}`,
+                transition: 'all 0.15s',
                 transform: isSel ? 'scale(1.04)' : 'scale(1)',
-                boxShadow: isSel ? '0 0 20px #00ff4133' : 'none',
+                boxShadow: isSel ? '0 0 20px rgba(0, 240, 255, 0.2)' : 'none',
                 textAlign: 'left',
               }}>
                 <div style={{ fontSize: '36px', marginBottom: '8px' }}>{char.emoji}</div>
-                <div style={{ color: '#00ff41', fontWeight: 'bold', fontSize: '13px', marginBottom: '2px' }}>{char.name}</div>
-                <div style={{ color: '#555', fontSize: '10px', marginBottom: '10px' }}>{char.role} — {char.specialty}</div>
-                <div style={{ color: '#3a3a3a', fontSize: '10px', lineHeight: '1.6', marginBottom: '10px' }}>{char.bio}</div>
-                <div style={{ padding: '5px 8px', background: '#0a0a00', border: '1px solid #2a2a00', borderRadius: '3px', color: '#aaaa00', fontSize: '9px' }}>
+                <div className="cyber-font" style={{ color: 'var(--neon-blue)', fontWeight: 'bold', fontSize: '15px', marginBottom: '2px', letterSpacing: '1px' }}>{char.name}</div>
+                <div style={{ color: '#a0a0ff', fontSize: '11px', marginBottom: '10px' }}>{char.role} — {char.specialty}</div>
+                <div style={{ color: '#7777aa', fontSize: '11px', lineHeight: '1.6', marginBottom: '10px' }}>{char.bio}</div>
+                <div style={{ padding: '5px 8px', background: 'rgba(252, 238, 10, 0.1)', border: '1px solid var(--neon-yellow)', borderRadius: '3px', color: 'var(--neon-yellow)', fontSize: '10px' }}>
                   ⭐ {char.bonus}
                 </div>
                 {isSel && (
-                  <div style={{ marginTop: '8px', color: '#224422', fontSize: '9px', lineHeight: '1.5', borderTop: '1px solid #111', paddingTop: '8px' }}>
+                  <div style={{ marginTop: '8px', color: 'var(--neon-blue)', fontSize: '10px', lineHeight: '1.5', borderTop: '1px solid #2a2a4a', paddingTop: '8px' }}>
                     💡 {char.startingHint}
                   </div>
                 )}
@@ -135,7 +134,7 @@ export default function CharacterSelect({ onSelect, onLogout }) {
 
         {/* Name input */}
         <div style={{ marginBottom: '24px', opacity: selected ? 1 : 0, transition: 'opacity 0.3s' }}>
-          <div style={{ color: '#2a2a2a', fontSize: '11px', marginBottom: '8px' }}>
+          <div style={{ color: 'var(--text)', fontSize: '13px', marginBottom: '8px' }}>
             {'>'} Ton alias sur le réseau :
           </div>
           <input
@@ -144,29 +143,27 @@ export default function CharacterSelect({ onSelect, onLogout }) {
             onKeyDown={e => e.key === 'Enter' && launch()}
             placeholder={selected?.name || 'GHOST'}
             style={{
-              background: 'transparent', border: '1px solid #00ff41',
-              color: '#00ff41', padding: '8px 20px',
-              fontFamily: 'monospace', fontSize: '16px',
-              textAlign: 'center', outline: 'none', width: '200px',
+              background: 'rgba(0, 240, 255, 0.05)', border: '1px solid var(--neon-blue)',
+              color: 'var(--neon-blue)', padding: '8px 20px',
+              fontFamily: 'Orbitron, sans-serif', fontSize: '18px',
+              textAlign: 'center', outline: 'none', width: '220px',
               letterSpacing: '3px',
+              clipPath: 'polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px)'
             }}
           />
         </div>
 
         {/* Launch button */}
         <button
+          className={selected ? "cyber-btn glow" : ""}
           onClick={launch}
           disabled={!selected}
           style={{
-            background: 'transparent',
-            border: `2px solid ${selected ? '#00ff41' : '#222'}`,
-            color: selected ? '#00ff41' : '#222',
-            padding: '12px 44px', fontFamily: 'monospace',
-            fontSize: '13px', cursor: selected ? 'pointer' : 'default',
-            letterSpacing: '3px', transition: 'all 0.2s',
+            padding: '14px 48px', fontSize: '15px', letterSpacing: '3px',
+            opacity: selected ? 1 : 0.5,
+            border: selected ? undefined : '1px solid #444',
+            color: selected ? undefined : '#444'
           }}
-          onMouseEnter={e => { if (selected) e.target.style.background = '#00ff4115'; }}
-          onMouseLeave={e => { e.target.style.background = 'transparent'; }}
         >
           [ LANCER LA MISSION ]
         </button>

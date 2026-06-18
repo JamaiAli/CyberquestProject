@@ -21,10 +21,10 @@ export default function Scoreboard({ visible, onClose }) {
       onClick={onClose}
     >
       <div
-        style={{ background: '#0a0f0a', border: '2px solid #00ff41', borderRadius: '6px', padding: '24px', minWidth: '380px', boxShadow: '0 0 50px rgba(0,255,65,0.25)', animation: 'fadeIn 0.2s ease' }}
+        style={{ background: '#0a0f0a', border: '2px solid #00f0ff', borderRadius: '6px', padding: '24px', minWidth: '380px', boxShadow: '0 0 50px rgba(0,255,65,0.25)', animation: 'fadeIn 0.2s ease' }}
         onClick={e => e.stopPropagation()}
       >
-        <div style={{ color: '#00ff41', fontSize: '15px', fontWeight: 'bold', textAlign: 'center', marginBottom: '18px', letterSpacing: '1px' }}>
+        <div style={{ color: '#00f0ff', fontSize: '15px', fontWeight: 'bold', textAlign: 'center', marginBottom: '18px', letterSpacing: '1px' }}>
           🏆 HALL OF FAME
         </div>
 
@@ -50,7 +50,7 @@ export default function Scoreboard({ visible, onClose }) {
                   <td style={{ padding: '7px 8px', textAlign: 'center' }}>{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}</td>
                   <td style={{ padding: '7px 8px', color: i === 0 ? '#ffd700' : '#ccc' }}>{s.playerName || 'Anonyme'}</td>
                   <td style={{ padding: '7px 8px', textAlign: 'center', color: '#ffff00' }}>{s.xp}</td>
-                  <td style={{ padding: '7px 8px', textAlign: 'center', color: '#00ff41' }}>{s.level}</td>
+                  <td style={{ padding: '7px 8px', textAlign: 'center', color: '#00f0ff' }}>{s.level}</td>
                   <td style={{ padding: '7px 8px', textAlign: 'center', color: '#555', fontSize: '11px' }}>{s.time || '—'}</td>
                 </tr>
               ))}
@@ -60,8 +60,8 @@ export default function Scoreboard({ visible, onClose }) {
 
         <button
           onClick={onClose}
-          style={{ marginTop: '18px', width: '100%', background: '#1a1a1a', color: '#00ff41', border: '1px solid #2a2a2a', padding: '8px', cursor: 'pointer', fontFamily: 'monospace', fontSize: '12px', borderRadius: '3px' }}
-          onMouseEnter={e => e.target.style.borderColor = '#00ff41'}
+          style={{ marginTop: '18px', width: '100%', background: '#1a1a1a', color: '#00f0ff', border: '1px solid #2a2a2a', padding: '8px', cursor: 'pointer', fontFamily: 'monospace', fontSize: '12px', borderRadius: '3px' }}
+          onMouseEnter={e => e.target.style.borderColor = '#00f0ff'}
           onMouseLeave={e => e.target.style.borderColor = '#2a2a2a'}
         >
           [ESC] Fermer
