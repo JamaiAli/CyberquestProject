@@ -43,7 +43,7 @@ app.post('/api/auth/register', async (req, res) => {
   }
 
   // Validation de la complexité du mot de passe (sécurité renforcée)
-  const pwdRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+  const pwdRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#_.-])[A-Za-z\d@$!%*?&#_.-]{8,}$/;
   if (!pwdRegex.test(password)) {
     return res.status(400).json({
       error: "Le mot de passe doit faire au moins 8 caractères, contenir une majuscule, une minuscule, un chiffre et un caractère spécial."
@@ -101,7 +101,7 @@ app.post('/api/auth/reset-password', async (req, res) => {
   const cleanUsername = username.trim().toUpperCase();
 
   // Validation de la complexité du nouveau mot de passe
-  const pwdRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+  const pwdRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#_.-])[A-Za-z\d@$!%*?&#_.-]{8,}$/;
   if (!pwdRegex.test(newPassword)) {
     return res.status(400).json({
       error: "Le nouveau mot de passe doit faire au moins 8 caractères, contenir une majuscule, une minuscule, un chiffre et un caractère spécial."

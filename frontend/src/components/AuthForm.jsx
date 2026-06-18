@@ -37,7 +37,7 @@ export default function AuthForm({ onLoginSuccess }) {
     if (/[a-z]/.test(password)) score += 1;
     if (/[A-Z]/.test(password)) score += 1;
     if (/\d/.test(password)) score += 1;
-    if (/[@$!%*?&]/.test(password)) score += 1;
+    if (/[@$!%*?&#_.-]/.test(password)) score += 1;
 
     let label = 'Très faible';
     let color = '#ff3333';
@@ -80,7 +80,14 @@ export default function AuthForm({ onLoginSuccess }) {
         body: JSON.stringify(payload)
       });
 
-      const data = await res.json();
+      const contentType = res.headers.get('content-type');
+      let data = {};
+      if (contentType && contentType.includes('application/json')) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        throw new Error(text || `Erreur serveur (HTTP ${res.status})`);
+      }
 
       if (!res.ok) {
         throw new Error(data.error || 'Une erreur est survenue.');
@@ -113,7 +120,14 @@ export default function AuthForm({ onLoginSuccess }) {
 
     try {
       const res = await fetch(`/api/auth/security-question?username=${encodeURIComponent(username)}`);
-      const data = await res.json();
+      const contentType = res.headers.get('content-type');
+      let data = {};
+      if (contentType && contentType.includes('application/json')) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        throw new Error(text || `Erreur serveur (HTTP ${res.status})`);
+      }
 
       if (!res.ok) {
         throw new Error(data.error || 'Utilisateur introuvable.');
@@ -144,7 +158,14 @@ export default function AuthForm({ onLoginSuccess }) {
         body: JSON.stringify({ username, securityAnswer, newPassword: password })
       });
 
-      const data = await res.json();
+      const contentType = res.headers.get('content-type');
+      let data = {};
+      if (contentType && contentType.includes('application/json')) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        throw new Error(text || `Erreur serveur (HTTP ${res.status})`);
+      }
 
       if (!res.ok) {
         throw new Error(data.error || 'Échec de la réinitialisation.');
