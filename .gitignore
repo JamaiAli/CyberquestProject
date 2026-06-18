@@ -5,3 +5,14 @@ dist/
 *.log
 .DS_Store
 Thumbs.db
+.claude/
+server.log
+hash.txt
+rockyou.txt
+*.db
+cyberquest.db
+hash_ntlmv2.txt
+
+# Clés API — ne jamais committer
+backend/.env
+.env

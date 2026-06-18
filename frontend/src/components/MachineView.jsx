@@ -21,10 +21,10 @@ export default function MachineView({ machine, phase, effect }) {
     <div style={{ padding: '14px', background: '#08080e', overflow: 'auto', display: 'flex', flexDirection: 'column', gap: '10px', height: '100%', boxSizing: 'border-box' }}>
 
       {/* Machine header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '10px 14px', background: '#0d1420', border: '1px solid #00ff4122', borderRadius: '5px', flexShrink: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '10px 14px', background: '#0d1420', border: '1px solid #00f0ff22', borderRadius: '5px', flexShrink: 0 }}>
         <span style={{ fontSize: '28px', lineHeight: 1 }}>{machine.icon}</span>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ color: '#00ff41', fontSize: '15px', fontWeight: 'bold' }}>{machine.name}</div>
+          <div style={{ color: '#00f0ff', fontSize: '15px', fontWeight: 'bold' }}>{machine.name}</div>
           <div style={{ color: '#555', fontSize: '11px', marginTop: '2px' }}>{machine.ip} — {machine.os}</div>
           <div style={{ color: '#333', fontSize: '10px', marginTop: '1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {machine.services?.join(' | ') || ''}
@@ -40,7 +40,7 @@ export default function MachineView({ machine, phase, effect }) {
             [{machine.difficulty?.toUpperCase()}]
           </div>
           {done && (
-            <div style={{ color: '#00ff41', fontSize: '10px', fontWeight: 'bold' }}>✓ PWNED</div>
+            <div style={{ color: '#00f0ff', fontSize: '10px', fontWeight: 'bold' }}>✓ PWNED</div>
           )}
         </div>
       </div>
@@ -73,7 +73,7 @@ export default function MachineView({ machine, phase, effect }) {
               <code key={c} style={{
                 background: '#0e0e0e', border: '1px solid #2a2a2a',
                 borderRadius: '3px', padding: '4px 9px',
-                color: '#00ff41', fontSize: '11px',
+                color: '#00f0ff', fontSize: '11px',
                 fontFamily: '"Fira Code", monospace',
               }}>
                 {c.replace('<ip>', machine.ip)}
@@ -96,7 +96,7 @@ export default function MachineView({ machine, phase, effect }) {
       {/* Pwned success */}
       {done && (
         <div style={{ padding: '12px', background: '#051505', border: '1px solid #00aa44', borderRadius: '5px', textAlign: 'center', animation: 'fadeIn 0.3s ease' }}>
-          <div style={{ color: '#00ff41', fontSize: '14px', fontWeight: 'bold', marginBottom: '4px' }}>🚩 MACHINE COMPROMISE !</div>
+          <div style={{ color: '#00f0ff', fontSize: '14px', fontWeight: 'bold', marginBottom: '4px' }}>🚩 MACHINE COMPROMISE !</div>
           <div style={{ color: '#555', fontSize: '11px' }}>Flag récupéré. Tape "exit" pour revenir au réseau.</div>
         </div>
       )}

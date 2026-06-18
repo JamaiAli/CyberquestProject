@@ -17,10 +17,11 @@ function buildPrompt(mode, machine) {
   return `\x1b[36mattacker@kali\x1b[0m:\x1b[34m~/pentest\x1b[0m$ `;
 }
 
-export default function Terminal({ onCommand, gameState, onWriteRef }) {
+export default function Terminal({ onCommand, gameState, onWriteRef, onRunRef }) {
   const containerRef = useRef(null);
   const termRef      = useRef(null);
   const inputRef     = useRef('');
+  const cursorPosRef = useRef(0);   // cursor position within inputRef
   const historyRef   = useRef([]);
   const histIdxRef   = useRef(-1);
   const modeRef      = useRef('NETWORK');
@@ -37,12 +38,12 @@ export default function Terminal({ onCommand, gameState, onWriteRef }) {
     const term = new XTerm({
       theme: {
         background: '#0d0d0d',
-        foreground: '#00ff41',
-        cursor: '#00ff41',
+        foreground: '#00f0ff',
+        cursor: '#00f0ff',
         cursorAccent: '#0d0d0d',
         selectionBackground: '#1a4a1a',
         black: '#0d0d0d',
-        green: '#00ff41',
+        green: '#00f0ff',
         brightGreen: '#39ff14',
         yellow: '#ffff00',
         brightYellow: '#ffee00',
@@ -64,6 +65,11 @@ export default function Terminal({ onCommand, gameState, onWriteRef }) {
     const fitAddon = new FitAddon();
     term.loadAddon(fitAddon);
     term.open(containerRef.current);
+
+    // Let xterm handle all keys normally.
+    // Arrow keys for map movement are handled in App.jsx, which
+    // already ignores them when a TEXTAREA (xterm) has focus.
+
     const doFit = () => { try { fitAddon.fit(); } catch (_) {} };
     doFit();
     const ro = new ResizeObserver(doFit);
@@ -77,6 +83,24 @@ export default function Terminal({ onCommand, gameState, onWriteRef }) {
         if (!termRef.current) return;
         text.split('\n').forEach(line => termRef.current.writeln(line));
         termRef.current.write(buildPrompt(modeRef.current, machineRef.current));
+      };
+    }
+
+    // Expose run function to inject a command programmatically (e.g. from a button)
+    if (onRunRef) {
+      onRunRef.current = async (cmdText) => {
+        const t = termRef.current;
+        if (!t) return;
+        t.writeln('');
+        t.writeln(`\x1b[33m${cmdText}\x1b[0m`);
+        try {
+          const output = await onCommand(cmdText);
+          if (output === '\x1b[2J\x1b[H') { t.clear(); }
+          else if (output) { output.split('\n').forEach(line => t.writeln(line)); }
+        } catch (_) {
+          t.writeln('\x1b[31m[ERROR] Backend non disponible.\x1b[0m');
+        }
+        t.write(buildPrompt(modeRef.current, machineRef.current));
       };
     }
 
@@ -114,6 +138,18 @@ export default function Terminal({ onCommand, gameState, onWriteRef }) {
 
       sounds.keyPress();
 
+      // Helper: redraw the current input line with cursor at cursorPosRef
+      const redrawLine = (text) => {
+        // Move cursor to start of input, clear to end of line
+        const oldLen = inputRef.current.length;
+        const moveBack = cursorPosRef.current;
+        if (moveBack > 0) term.write(`\x1b[${moveBack}D`); // move to start of input
+        term.write('\x1b[K'); // clear from cursor to end of line
+        term.write(text);
+        inputRef.current = text;
+        cursorPosRef.current = text.length;
+      };
+
       if (code === 13) {
         const cmd = inputRef.current.trim();
         term.writeln('');
@@ -138,33 +174,55 @@ export default function Terminal({ onCommand, gameState, onWriteRef }) {
         }
 
         inputRef.current = '';
+        cursorPosRef.current = 0;
         term.write(buildPrompt(modeRef.current, machineRef.current));
 
       } else if (code === 8) {
-        if (inputRef.current.length > 0) {
-          inputRef.current = inputRef.current.slice(0, -1);
-          term.write('\b \b');
+        // Backspace: delete character before cursor
+        if (cursorPosRef.current > 0) {
+          const pos = cursorPosRef.current;
+          const before = inputRef.current.slice(0, pos - 1);
+          const after  = inputRef.current.slice(pos);
+          inputRef.current = before + after;
+          cursorPosRef.current = pos - 1;
+          // Move back one, rewrite rest of line, clear trailing char, reposition cursor
+          term.write('\b');               // move back one
+          term.write(after + ' ');         // rewrite rest + blank over old last char
+          const moveBack = after.length + 1;
+          if (moveBack > 0) term.write(`\x1b[${moveBack}D`); // move cursor back
         }
-      } else if (code === 38) {
+
+      } else if (domEvent.key === 'ArrowLeft') {
+        domEvent.preventDefault();
+        if (cursorPosRef.current > 0) {
+          cursorPosRef.current--;
+          term.write('\x1b[D'); // move cursor left
+        }
+
+      } else if (domEvent.key === 'ArrowRight') {
+        domEvent.preventDefault();
+        if (cursorPosRef.current < inputRef.current.length) {
+          cursorPosRef.current++;
+          term.write('\x1b[C'); // move cursor right
+        }
+
+      } else if (domEvent.key === 'ArrowUp') {
+        domEvent.preventDefault();
         if (historyRef.current.length > 0) {
           histIdxRef.current = Math.min(histIdxRef.current + 1, historyRef.current.length - 1);
-          const prev = historyRef.current[histIdxRef.current];
-          term.write('\b \b'.repeat(inputRef.current.length));
-          inputRef.current = prev;
-          term.write(prev);
+          redrawLine(historyRef.current[histIdxRef.current]);
         }
-      } else if (code === 40) {
+
+      } else if (domEvent.key === 'ArrowDown') {
+        domEvent.preventDefault();
         if (histIdxRef.current > 0) {
           histIdxRef.current--;
-          const next = historyRef.current[histIdxRef.current];
-          term.write('\b \b'.repeat(inputRef.current.length));
-          inputRef.current = next;
-          term.write(next);
+          redrawLine(historyRef.current[histIdxRef.current]);
         } else if (histIdxRef.current === 0) {
           histIdxRef.current = -1;
-          term.write('\b \b'.repeat(inputRef.current.length));
-          inputRef.current = '';
+          redrawLine('');
         }
+
       } else if (code === 9) {
         domEvent.preventDefault();
         const partial = inputRef.current;
@@ -173,16 +231,25 @@ export default function Terminal({ onCommand, gameState, onWriteRef }) {
         if (matches.length === 1) {
           const completion = matches[0].slice(partial.length);
           inputRef.current += completion;
+          cursorPosRef.current = inputRef.current.length;
           term.write(completion);
         } else if (matches.length > 1) {
           term.writeln('');
           term.writeln('\x1b[33m' + matches.join('  ') + '\x1b[0m');
           term.write(buildPrompt(modeRef.current, machineRef.current));
           term.write(inputRef.current);
+          cursorPosRef.current = inputRef.current.length;
         }
+
       } else if (key.length === 1 && !domEvent.ctrlKey && !domEvent.altKey && !domEvent.metaKey) {
-        inputRef.current += key;
-        term.write(key);
+        // Insert character at cursor position
+        const pos = cursorPosRef.current;
+        const before = inputRef.current.slice(0, pos);
+        const after  = inputRef.current.slice(pos);
+        inputRef.current = before + key + after;
+        cursorPosRef.current = pos + 1;
+        term.write(key + after);
+        if (after.length > 0) term.write(`\x1b[${after.length}D`); // move cursor back
       }
     });
 
@@ -193,7 +260,7 @@ export default function Terminal({ onCommand, gameState, onWriteRef }) {
     <div ref={containerRef} style={{
       height: '100%', width: '100%',
       background: '#0d0d0d',
-      borderTop: '2px solid #00ff41',
+      borderTop: '2px solid #00f0ff',
       padding: '4px 8px',
       overflow: 'hidden',
     }} />

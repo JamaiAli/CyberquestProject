@@ -1,26 +1,27 @@
 const MACHINES_META = [
-  { id: 'webserver' }, { id: 'mailserver' }, { id: 'dbserver' }, { id: 'dc' },
+  { id: 'webserver' }, { id: 'mailserver' }, { id: 'aicore' }
 ];
 
 function formatTime(s) {
   return `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
 }
 
-export default function HUD({ gameState, mode, player, timeLeft }) {
-  const { xp = 0, level = 1, pwnedMachines = [], currentMachine = null } = gameState;
+export default function HUD({ gameState, mode, player, timeLeft, onLogout, onShowScores, onTestEndgame }) {
+  const { xp = 0, level = 1, pwnedMachines = [], currentMachine = null, sessionId = '' } = gameState;
   const xpPct   = xp % 100;
   const pwned   = pwnedMachines.length;
   const urgent  = timeLeft < 120;
   const warning = timeLeft < 180;
-  const timerColor = urgent ? '#ff0000' : warning ? '#ffaa00' : '#00ff41';
+  const timerColor = urgent ? '#ff007f' : warning ? '#ffaa00' : '#00f0ff';
 
   return (
-    <div style={{
+    <div className="cyber-panel" style={{
       display: 'flex', alignItems: 'center', gap: '14px',
       padding: '0 12px', height: '50px',
-      background: '#06060c',
-      borderBottom: `1px solid ${urgent ? '#ff000033' : '#00ff4122'}`,
-      fontFamily: '"Fira Code", monospace', fontSize: '11px',
+      background: 'rgba(5, 5, 12, 0.95)',
+      borderBottom: `2px solid ${urgent ? 'var(--neon-pink)' : 'var(--neon-blue)'}`,
+      boxShadow: `0 4px 15px ${urgent ? 'rgba(255, 0, 127, 0.3)' : 'rgba(0, 240, 255, 0.15)'}`,
+      fontFamily: '"Rajdhani", monospace', fontSize: '12px',
       flexShrink: 0, overflow: 'hidden', width: '100%',
       transition: 'border-color 0.5s',
     }}>
@@ -28,63 +29,38 @@ export default function HUD({ gameState, mode, player, timeLeft }) {
         @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
       `}</style>
 
-      <span style={{ fontWeight: 'bold', fontSize: '13px', color: '#ff2200', letterSpacing: '2px', flexShrink: 0, textShadow: '0 0 8px #ff220066' }}>
-        ⚡ CYBER<span style={{ color: '#ff6600' }}>QUEST</span>
+      <span className="cyber-font glow" style={{ fontWeight: 'bold', fontSize: '16px', color: 'var(--neon-pink)', letterSpacing: '3px', flexShrink: 0 }}>
+        ⚡ CYBER<span style={{ color: 'var(--neon-blue)' }}>QUEST</span>
       </span>
 
       {/* Player identity */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: '7px', flexShrink: 0,
-        padding: '3px 10px', background: '#0a0a0a',
-        border: '1px solid #1a1a2a', borderRadius: '3px',
+        padding: '3px 10px', background: 'rgba(0, 240, 255, 0.05)',
+        border: '1px solid var(--neon-blue)',
+        clipPath: 'polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px)'
       }}>
-        <span style={{ fontSize: '14px' }}>{player?.emoji || '🧑‍💻'}</span>
+        <span style={{ fontSize: '16px' }}>{player?.emoji || '🧑‍💻'}</span>
         <div>
-          <div style={{ color: '#00ff41', fontSize: '11px', fontWeight: 'bold', lineHeight: 1.2 }}>
-            {player?.hackerName || 'GHOST'}
+          <div className="cyber-font" style={{ color: 'var(--neon-blue)', fontSize: '12px', fontWeight: 'bold', lineHeight: 1.2 }}>
+            {player?.hackerName || 'GHOST'} <span style={{ color: '#aaa', fontSize: '9px', fontWeight: 'normal' }}>({sessionId})</span>
           </div>
-          <div style={{ color: '#2a2a2a', fontSize: '9px' }}>{player?.role || 'Hacker'}</div>
+          <div style={{ color: '#a0a0ff', fontSize: '10px' }}>{player?.role || 'Hacker'}</div>
         </div>
       </div>
 
       {/* Mode badge */}
-      <div style={{
-        padding: '3px 9px', borderRadius: '3px', fontSize: '10px', fontWeight: 'bold', flexShrink: 0,
-        background: mode === 'MACHINE' ? '#1a0800' : '#001a33',
-        border: `1px solid ${mode === 'MACHINE' ? '#ff5500' : '#0055aa'}`,
-        color: mode === 'MACHINE' ? '#ff6600' : '#0099ff',
+      <div className="cyber-font" style={{
+        padding: '4px 10px', fontSize: '11px', fontWeight: 'bold', flexShrink: 0,
+        background: mode === 'MACHINE' ? 'rgba(255, 0, 127, 0.1)' : 'rgba(0, 240, 255, 0.1)',
+        border: `1px solid ${mode === 'MACHINE' ? 'var(--neon-pink)' : 'var(--neon-blue)'}`,
+        color: mode === 'MACHINE' ? 'var(--neon-pink)' : 'var(--neon-blue)',
+        clipPath: 'polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px)'
       }}>
         {mode === 'MACHINE' ? `💻 ${currentMachine?.name || ''}` : '🌐 VUE RÉSEAU'}
       </div>
 
-      {/* XP bar */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
-        <span style={{ color: '#ffaa00', fontSize: '10px' }}>⭐ Niv.{level}</span>
-        <div style={{ width: '60px', height: '5px', background: '#111', borderRadius: '3px', border: '1px solid #222' }}>
-          <div style={{ width: `${xpPct}%`, height: '100%', background: '#ffaa00', borderRadius: '3px', transition: 'width 0.4s' }} />
-        </div>
-        <span style={{ color: '#333', fontSize: '10px' }}>{xp}xp</span>
-      </div>
 
-      {/* Machines pwned */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
-        <span style={{ color: '#333', fontSize: '10px' }}>💀</span>
-        <div style={{ display: 'flex', gap: '3px' }}>
-          {MACHINES_META.map(m => (
-            <div key={m.id} style={{
-              width: '17px', height: '17px', borderRadius: '2px',
-              background: pwnedMachines.includes(m.id) ? '#004422' : '#0a0a0a',
-              border: `1px solid ${pwnedMachines.includes(m.id) ? '#00ff41' : '#1a1a1a'}`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '9px', color: '#00ff41',
-              boxShadow: pwnedMachines.includes(m.id) ? '0 0 5px #00ff4166' : 'none',
-            }}>
-              {pwnedMachines.includes(m.id) ? '✓' : ''}
-            </div>
-          ))}
-        </div>
-        <span style={{ color: '#333', fontSize: '10px' }}>{pwned}/4</span>
-      </div>
 
       {/* Machine phases */}
       {mode === 'MACHINE' && currentMachine && (
@@ -105,7 +81,7 @@ export default function HUD({ gameState, mode, player, timeLeft }) {
       {/* Timer */}
       <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
         {urgent && (
-          <span style={{ color: '#ff0000', fontSize: '10px', animation: 'blink 0.8s step-end infinite' }}>
+          <span style={{ color: '#ff007f', fontSize: '10px', animation: 'blink 0.8s step-end infinite' }}>
             ⚠ TRACÉ IMMINENT
           </span>
         )}
@@ -117,6 +93,31 @@ export default function HUD({ gameState, mode, player, timeLeft }) {
         }}>
           ⏱ {formatTime(timeLeft)}
         </span>
+      </div>
+
+      {/* Actions (Scores et Déconnexion) */}
+      <div style={{ display: 'flex', gap: '8px', flexShrink: 0, paddingLeft: '6px' }}>
+        {onTestEndgame && (
+          <button className="cyber-btn glow" onClick={onTestEndgame} style={{
+            padding: '4px 10px', fontSize: '11px', borderColor: '#ff0000', color: '#ff0000'
+          }}>
+            ☢ TEST ENDGAME
+          </button>
+        )}
+        {onShowScores && (
+          <button className="cyber-btn glow" onClick={onShowScores} style={{
+            padding: '4px 10px', fontSize: '11px',
+          }}>
+            🏆 SCORES
+          </button>
+        )}
+        {onLogout && (
+          <button className="cyber-btn" onClick={onLogout} style={{
+            padding: '4px 10px', fontSize: '11px', borderColor: 'var(--neon-pink)', color: 'var(--neon-pink)'
+          }}>
+            ❌ DÉCONNEXION
+          </button>
+        )}
       </div>
     </div>
   );

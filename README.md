@@ -1,32 +1,30 @@
-# CyberQuest — Edition Standalone (Proof of Concept)
+# CyberQuest — Pentest RPG
 
-Un jeu de simulation de pentest où vous incarnez un hacker devant compromettre un réseau d'entreprise (CorpNet). Explorez les machines de la carte, scannez les services, exploitez les vulnérabilités et récupérez les flags.
-
-Cette branche héberge une version **Proof of Concept (PoC)** dont l'architecture a été entièrement remaniée pour fonctionner de façon autonome dans le navigateur, sans serveur backend.
+Un jeu de simulation de pentest où tu incarnes un hacker infiltrant le réseau de NEXUS Corp. Déplace ton personnage GHOST sur une carte top-down vue de dessus, approche-toi des machines cibles, et attaque-les depuis le terminal intégré. Récupère les 4 flags avant la fin du compte à rebours de 6 minutes.
 
 ---
 
-## Objectif du Proof of Concept (PoC)
+## 🔄 Différence entre les Versions
 
-Ce Proof of Concept a pour but de valider la faisabilité technique d'une application riche et interactive (terminal simulé, progression RPG, validation de scénarios complexes) en utilisant une architecture purement **Frontend (Client-Side)**. 
+> **Version `master` (Client-Serveur)**
+> Version complète avec un backend Node.js (SQLite) et un frontend React. Permet de gérer la persistance en base de données, la sécurité des scores, l'authentification et l'intégration de véritables appels d'API (ex: l'IA Sentinel via GROQ).
+> *Utilité : Déploiement réel en production sécurisée.*
 
-### Que permet exactement cette version ?
-- **Lancement immédiat** : Aucun serveur Node.js ni base de données à configurer. L'application démarre et s'exécute intégralement dans le navigateur.
-- **Autonomie totale** : Le jeu peut fonctionner hors-ligne une fois chargé.
-- **Persistance locale** : La progression du joueur et le tableau des scores sont sauvegardés directement dans le navigateur de l'utilisateur.
+> **Version `proof-of-concept` (Standalone PoC - Actuelle)**
+> Version allégée 100% Frontend. Le moteur de jeu a été migré dans le navigateur (`frontend/src/engine/`) et l'état est sauvegardé via `localStorage`. Il n'y a plus de backend, plus de base de données.
+> *Utilité : Démonstrations rapides, salons, hackathons, ou pour jouer hors-ligne.*
+
+**Modifications spécifiques du PoC :**
+- Le dossier `backend` n'est plus utilisé.
+- Remplacement des requêtes API (`fetch`) par des exécutions de fonctions locales en ES Modules.
+- Le système d'authentification est simulé en local.
+- L'IA Sentinel valide un contournement si le joueur tape `bypass`.
 
 ---
 
-## Installation & Lancement
+## Installation & Lancement (Standalone)
 
-L'installation est grandement simplifiée par rapport à la version d'origine.
-
-### 1. Prérequis
-- **Node.js** v18+
-- **npm**
-
-### 2. Lancement du jeu
-Placez-vous dans le dossier `frontend`, installez les dépendances et lancez le serveur de développement :
+Puisque vous êtes sur la branche `proof-of-concept`, **aucun backend n'est requis**.
 
 ```bash
 cd frontend
@@ -34,111 +32,294 @@ npm install
 npm run dev
 ```
 
-Le jeu sera alors accessible sur **http://localhost:5173**.
+Le jeu démarre sur **http://localhost:5173**
 
 ---
 
-## Architecture et Différences avec la version originale
+## Comment tester le projet
 
-Dans la version originale (`master`), l'architecture reposait sur un modèle Client/Serveur. Un serveur backend Node.js validait les commandes et stockait l'état du jeu.
+### Étape 1 — Sélection du personnage
 
-Dans ce PoC Standalone, **le backend a été court-circuité et intégré au frontend**.
+Au lancement, l'écran de sélection affiche trois personnages :
+- **GHOST** 🧑‍💻 — Hacktiviste (+20% XP exploit web)
+- **PHANTOM** 👤 — Spécialiste réseau (+20% XP scans nmap)
+- **VIPER** 🐍 — Social Engineer (+20% XP hydra & creds)
 
-### Résumé des modifications :
-1. **Migration du Moteur** : Le moteur de jeu (`commandEngine.js` et `gameState.js`) a été migré depuis le backend vers le dossier `frontend/src/engine/` et transformé en modules JavaScript (ES Modules).
-2. **Bypass Réseau** : Les appels asynchrones via `fetch('/api/command')` ont été remplacés par des exécutions locales directes.
-3. **Stockage LocalStorage** : La persistance de l'état (points de vie, XP, machines compromises) et le système de High Scores sont désormais gérés par l'API Web `localStorage` au lieu d'être stockés dans la mémoire vive d'un serveur distant.
+Clique sur un personnage, tape ton alias, puis clique **LANCER LA MISSION**.
 
----
+### Étape 2 — Séquence d'intro
 
-## Comment jouer
+L'intro cinématique affiche le briefing mission. Clique sur **COMMENCER L'INFILTRATION** pour entrer dans le jeu.
 
-### Vue Réseau — Commandes disponibles
+### Étape 3 — Se déplacer sur la carte
+
+La carte représente le réseau NEXUS Corp vu de dessus, la nuit. GHOST apparaît juste en dessous de sa base Kali Linux (en haut au centre).
+
+| Touche | Action |
+|--------|--------|
+| `↑` `↓` `←` `→` | Déplacer GHOST case par case |
+
+Quand GHOST s'approche d'une machine, une **bulle d'interaction** apparaît au-dessus de lui et ORACLE envoie un message dans le terminal.
+
+> **Important** : les flèches déplacent exclusivement GHOST sur la carte. Toutes les autres touches (lettres, chiffres, Entrée) vont dans le terminal.
+
+### Étape 4 — Tester la chaîne d'attaque complète
+
+Lance le backend, ouvre le jeu, puis joue la séquence suivante dans le terminal :
+
+#### A. Cartographier le réseau
+```
+nmap 192.168.1.0/24
+```
+Les câbles réseau s'illuminent sur la carte. ORACLE guide vers les premières cibles.
+
+#### B. Attaquer le Web Server (FACILE)
+
+Marche jusqu'au Web Server (bas-gauche), puis dans le terminal :
+```
+cd 192.168.1.10
+recon
+nmap -sV 192.168.1.10
+nikto -h 192.168.1.10
+dirb http://192.168.1.10
+sqlmap -u http://192.168.1.10/login.php
+cat /flag.txt
+```
+Flag : `CQ{w3b_s3rv3r_pwn3d}` — le bâtiment passe au vert sur la carte.
+
+#### C. Attaquer le Mail Server (MOYEN)
+
+Marche jusqu'au Mail Server (bas-droite) :
+```
+cd 192.168.1.20
+recon
+nmap -sV 192.168.1.20
+hydra -l admin -P /usr/share/wordlists/rockyou.txt 192.168.1.20 smtp
+nc 192.168.1.20 25
+cat /flag.txt
+```
+Flag : `CQ{m41l_s3rv3r_0wn3d}` — le DB Server se déverrouille sur la carte.
+
+#### D. Attaquer le DB Server (MOYEN)
+
+Marche vers le centre (les couloirs de bypass autour du DB Server permettent de le contourner) :
+```
+cd 192.168.1.30
+recon
+nmap -sV 192.168.1.30
+sqlmap --dump
+find / -perm -u=s 2>/dev/null
+sudo python3 -c "import os; os.system('/bin/bash')"
+cat /flag.txt
+```
+Flag : `CQ{db_dump_g0t}` — le Domain Controller se déverrouille et la barrière Firewall apparaît.
+
+#### E. Attaquer le Domain Controller (DIFFICILE — boss)
+
+Traverse la zone Firewall (bas-centre) :
+```
+cd 192.168.1.100
+recon
+nmap -sV 192.168.1.100
+searchsploit ms17-010
+nc 192.168.1.100 445
+whoami
+sudo -l
+cat /flag.txt
+```
+Flag : `CQ{d0m41n_4dm1n_pwn3d}` — écran de victoire avec Matrix rain.
+
+### Étape 5 — Autres commandes utiles
 
 | Commande | Description |
 |----------|-------------|
-| `nmap 192.168.1.0/24` | Scanner le réseau et découvrir les machines |
-| `nmap -sV <ip>` | Scanner une machine précise |
-| `cd <ip>` | Entrer dans une salle (machine) |
-| `ls` | Lister les machines visibles |
-| `whoami` | Voir votre contexte attaquant |
-| `hint` | Obtenir un indice |
-| `help` | Toutes les commandes |
+| `hint` | Indice sur la phase actuelle |
+| `help` | Liste toutes les commandes disponibles |
+| `ls` | Lister les machines du réseau |
+| `whoami` | Afficher ton identité et contexte |
+| `exit` | Quitter la machine en cours |
+| `scores` | Afficher le tableau des scores |
+| `clear` / `Ctrl+L` | Effacer le terminal |
+| `Ctrl+C` | Copier la sélection / annuler la commande |
+| `Tab` | Autocomplétion des commandes |
 
-### Mode Machine (Pentest) — 4 phases
+### Étape 6 — Vérifier les écrans spéciaux
 
-Une fois connecté à une machine (via `cd <ip>`), l'attaque suit une méthodologie stricte :
+| Condition | Écran |
+|-----------|-------|
+| Timer atteint 0 (6 min écoulées) | Game Over glitch rouge |
+| 4 flags récupérés | Victoire Matrix rain vert |
+| ORACLE à 2 min restantes | Message d'alerte dans le terminal |
+| ORACLE à 1 min restante | Message critique dans le terminal |
 
-| Phase | Commandes |
-|-------|-----------|
-| **1 — Reconnaissance** | `recon`, `whois <ip>` |
-| **2 — Scanning** | `nmap -sV <ip>`, `nikto -h <ip>`, `dirb http://<ip>` |
-| **3 — Exploitation** | `sqlmap`, `hydra`, `curl`, `nc` |
-| **4 — Post-exploitation** | `whoami`, `sudo -l`, `sudo python3`, `cat /flag.txt` |
-| **Quitter** | `exit` |
+---
 
-> Tapez `hint` à tout moment pour obtenir une indication sur la phase en cours.
+## Diagramme de séquence
 
-### Ordre d'attaque recommandé
+Flux complet d'une session de jeu, du lancement au flag final.
 
-```text
-nmap 192.168.1.0/24
-    ↓
-cd 192.168.1.10    → Web Server    [FACILE]   flag: CQ{w3b_s3rv3r_pwn3d}
-cd 192.168.1.20    → Mail Server   [MOYEN]    flag: CQ{m41l_s3rv3r_0wn3d}
-    ↓ (déblocage conditionnel)
-cd 192.168.1.30    → DB Server     [MOYEN]    flag: CQ{db_dump_g0t}
-    ↓
-cd 192.168.1.100   → Domain Controller [DIFFICILE] flag: CQ{d0m41n_4dm1n_pwn3d}
+```mermaid
+sequenceDiagram
+    actor P as Joueur
+    participant UI as App.jsx (React)
+    participant GM as GameMap (Canvas)
+    participant T  as Terminal (xterm.js)
+    participant B  as Backend (Express)
+    participant CE as commandEngine.js
+
+    P->>UI: Sélectionne personnage + alias
+    UI->>UI: screen = 'intro'
+    UI-->>P: IntroScreen — briefing cinématique
+    P->>UI: Clique "Commencer l'infiltration"
+    UI->>UI: screen = 'game' · timer 360 s démarre
+
+    rect rgb(0, 30, 0)
+        note over P,GM: Déplacement GHOST sur la carte
+        loop Touche flèche pressée
+            P->>GM: ↑ ↓ ← → (window keydown)
+            GM->>GM: Vérifie collision NETWORK_MAP
+            GM->>GM: ghostTileRef ← nouvelle position
+            GM->>GM: Détection proximité machine (Manhattan ≤ 1)
+            GM-->>T: ORACLE › "cd {ip}" si nouvelle machine proche
+            GM-->>P: Bulle interaction au-dessus de GHOST
+        end
+    end
+
+    rect rgb(0, 0, 40)
+        note over P,CE: Commandes pentest dans le terminal
+        loop Commande soumise
+            P->>T: tape commande (ex : nmap -sV 192.168.1.10)
+            T->>B: POST /api/command {command, sessionId}
+            B->>CE: route vers handler
+            CE->>CE: vérifie phase · met à jour gameState
+            CE-->>B: {output, newState, effect, pedagogie}
+            B-->>T: réponse JSON
+            T-->>P: affiche output (ANSI colors)
+            UI->>GM: gameState mis à jour → redessine carte
+            GM-->>P: bâtiment change couleur · câble devient vert
+        end
+    end
+
+    alt Timer ORACLE — 2 min restantes
+        UI-->>T: ORACLE › "Accélère, ils remontent ta connexion"
+    end
+    alt Timer ORACLE — 1 min restante
+        UI-->>T: ORACLE › "⚠ 60 secondes. Ils arrivent."
+    end
+
+    alt 4 flags capturés (gameWon = true)
+        UI->>UI: screen = 'victory'
+        UI-->>P: Écran Victory — Matrix rain + score final
+    else Timer = 0
+        UI->>UI: screen = 'gameover'
+        UI-->>P: Écran Game Over — glitch rouge
+    end
 ```
 
 ---
 
-## Structure du projet
+## Diagramme d'architecture
 
-La structure a été adaptée pour cette version autonome :
+Relations entre les composants frontend, le backend, et les flux de données.
 
-```text
+```mermaid
+graph TB
+    subgraph FE["🖥  Frontend — React + Vite  (port 5173)"]
+        direction TB
+
+        App["App.jsx\n── machine à états ──\nselect › intro › game › fin\n── refs partagées ──\nwriteToTermRef · ghostTileRef\nnearbyMachineRef · timerRef"]
+
+        subgraph Screens["Écrans"]
+            CS["CharacterSelect.jsx\nGHOST / PHANTOM / VIPER\nalias + bouton lancer"]
+            IS["IntroScreen.jsx\nbriefing cinématique"]
+            GO["GameOver.jsx\nglitch rouge"]
+            VIC["Victory.jsx\nMatrix rain"]
+        end
+
+        subgraph Game["Jeu principal"]
+            HUD["HUD.jsx\ntimer · identité\nprogression machines"]
+            GM["GameMap.jsx\nCanvas 2D 960×672\ntilemap · bâtiments\nGHOST lerp · câbles\nbulle interaction"]
+            TRM["Terminal.jsx\nxterm.js v5\ncommandes pentest\nautocomplétion · historique"]
+            MV["MachineView.jsx\nphases pentest\nétat machine active"]
+            PP["PedaPanel.jsx\nguide contextuel\nindices par phase"]
+        end
+
+        MAP["map.js\nNETWORK_MAP 20×14\nGHOST_SPAWN\nMACHINE_POSITIONS\nCABLE_LINKS"]
+    end
+
+    subgraph BE["⚙  Backend — Node.js + Express  (port 3001)"]
+        direction TB
+        SRV["server.js\nPOST /api/command\nGET  /api/state"]
+        CE["commandEngine.js\nnmap · cd · recon · sqlmap\nhydra · cat /flag.txt\nphases · flags · ORACLE\nmessages ANSI colorés"]
+        GS["gameState.js\nMap sessionId → state\npwnedMachines · phase\nxp · level · gameWon"]
+    end
+
+    App -->|"affiche selon screen"| CS & IS & GO & VIC
+    App -->|"affiche"| HUD & GM & TRM & MV & PP
+    GM -->|"importe"| MAP
+    App -->|"importe GHOST_SPAWN\nMACHINE_POSITIONS"| MAP
+
+    App -->|"ghostTileRef\nnearbyMachineRef"| GM
+    App -->|"onWriteRef → ORACLE alerts\nonCommand → POST"| TRM
+    TRM -->|"POST /api/command\n{command, sessionId}"| SRV
+    SRV --> CE
+    CE <-->|"lecture / écriture"| GS
+    SRV -->|"{output, newState,\neffect, pedagogie}"| TRM
+    TRM -->|"newState"| App
+    App -->|"gameState"| GM & HUD & MV & PP
+
+    style FE fill:#001a00,stroke:#00ff41,color:#00ff41
+    style BE fill:#00001a,stroke:#0066ff,color:#88aaff
+    style APP fill:#002200
+    style MAP fill:#001122
+```
+
+---
+
+## Architecture du jeu
+
+```
 cyberquest/
-├── backend/                  # Conservé uniquement pour référence (Inactif dans le PoC)
-├── poc/                      # Éléments de conception initiaux
+├── backend/
+│   ├── engine/
+│   │   ├── commandEngine.js   # Moteur de jeu : commandes, scénarios, flags
+│   │   └── gameState.js       # Sessions en mémoire (Map par sessionId)
+│   └── server.js              # API Express — POST /api/command, GET /api/state
 └── frontend/
     └── src/
-        ├── engine/           # Moteur de jeu migré (Logique, Commandes, État)
-        │   ├── commandEngine.js
-        │   └── gameState.js  # Gestion de l'état via LocalStorage
+        ├── map.js              # Tilemap 20×14 : grille, positions machines, câbles
         ├── components/
-        │   ├── GameMap.jsx     # Carte interactive (Canvas)
-        │   ├── Terminal.jsx    # Terminal simulé (xterm.js)
-        │   ├── HUD.jsx         # Barre de progression
-        │   ├── Scoreboard.jsx  # Classement (connecté au LocalStorage)
-        │   └── ...
-        ├── sounds.js           # API Web Audio
-        ├── styles/main.css
-        └── App.jsx             # Composant racine, coordonne l'état local
+        │   ├── CharacterSelect.jsx  # Sélection GHOST/PHANTOM/VIPER
+        │   ├── IntroScreen.jsx      # Cinématique de briefing
+        │   ├── GameMap.jsx          # Carte top-down Canvas (bâtiments, GHOST, câbles)
+        │   ├── Terminal.jsx         # Terminal xterm.js (commandes pentest)
+        │   ├── HUD.jsx              # Timer, identité, progression
+        │   ├── MachineView.jsx      # Vue phases pentest par machine
+        │   ├── PedaPanel.jsx        # Guide pédagogique contextuel
+        │   ├── GameOver.jsx         # Écran de fin (temps écoulé)
+        │   └── Victory.jsx          # Écran de victoire (Matrix rain)
+        ├── sounds.js           # Sons synthétisés (Web Audio API, sans fichiers)
+        ├── styles/main.css     # Animations, CRT scanlines, thème cyberpunk
+        └── App.jsx             # Machine à états : select → intro → game → fin
 ```
 
 ---
 
-## Technologies utilisées
+## Technologies
 
-Pour cette version Standalone, la pile technologique est exclusivement frontale :
-
-- **Interface** : React 18, Vite
-- **Terminal interactif** : xterm.js
-- **Audio** : Web Audio API (génération synthétique)
-- **Persistance** : HTML5 Web Storage (LocalStorage)
-- **Graphismes** : HTML5 Canvas
+| Côté | Stack |
+|------|-------|
+| Frontend | React 18, Vite, HTML Canvas 2D, xterm.js v5 |
+| Backend | Node.js 18, Express |
+| Audio | Web Audio API (aucun fichier audio) |
+| État jeu | Sessions en mémoire côté backend (Map), refs côté frontend |
+| Graphismes | Canvas `requestAnimationFrame` + lerp pour les animations |
 
 ---
 
-## Auteurs originaux
+## Auteurs
 
-- **BouazzaZayd** — Moteur de base & logique de scénarisation
-- **isselmou** — Graphismes de la carte interactive & Terminal
-- **JamaiAli** — Conception UX/UI globale & Intégration
-- **Aziz Baoueb** — Co-conception et développement de la version initiale
-
-## Contribution PoC (Standalone Edition)
-
-- **Aziz Baoueb** — Architecture et développement intégral de la version Standalone (sans backend). Migration du moteur Node.js vers React, bypass des requêtes HTTP, et implémentation de la persistance locale via LocalStorage pour créer une application 100% autonome.
+- **BouazzaZayd** — Moteur backend & logique pentest
+- **isselmou** — Carte interactive & terminal
+- **JamaiAli** — Interface, intégration & UX
+- **Aziz Baoueb** — Co-conception initiale & Architecture standalone (branche `proof-of-concept`)

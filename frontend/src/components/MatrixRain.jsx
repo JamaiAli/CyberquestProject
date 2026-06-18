@@ -19,7 +19,7 @@ export default function MatrixRain({ opacity = 0.15 }) {
     const draw = () => {
       ctx.fillStyle = 'rgba(0,0,0,0.05)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = '#00ff41';
+      ctx.fillStyle = '#00f0ff';
       ctx.font = '13px monospace';
       drops.forEach((y, x) => {
         ctx.fillText(chars[Math.floor(Math.random() * chars.length)], x * 16, y * 16);

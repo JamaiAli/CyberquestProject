@@ -12,12 +12,12 @@ export default function GameOver({ gameState, onRestart }) {
     }}>
       <style>{`
         @keyframes glitch {
-          0%   { text-shadow: 3px 0 #ff0000, -3px 0 #00ffff; transform: skewX(0deg); }
-          20%  { text-shadow: -3px 0 #ff0000, 3px 0 #00ffff; transform: skewX(-2deg); }
-          40%  { text-shadow: 3px 2px #ff0000, -3px -2px #00ffff; transform: skewX(2deg); }
-          60%  { text-shadow: -3px 0 #ff0000, 3px 0 #00ffff; transform: skewX(-1deg); }
-          80%  { text-shadow: 3px 0 #ff0000, -3px 0 #00ffff; transform: skewX(0deg); }
-          100% { text-shadow: -3px 0 #ff0000, 3px 0 #00ffff; transform: skewX(1deg); }
+          0%   { text-shadow: 3px 0 #ff007f, -3px 0 #00ffff; transform: skewX(0deg); }
+          20%  { text-shadow: -3px 0 #ff007f, 3px 0 #00ffff; transform: skewX(-2deg); }
+          40%  { text-shadow: 3px 2px #ff007f, -3px -2px #00ffff; transform: skewX(2deg); }
+          60%  { text-shadow: -3px 0 #ff007f, 3px 0 #00ffff; transform: skewX(-1deg); }
+          80%  { text-shadow: 3px 0 #ff007f, -3px 0 #00ffff; transform: skewX(0deg); }
+          100% { text-shadow: -3px 0 #ff007f, 3px 0 #00ffff; transform: skewX(1deg); }
         }
         @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
         @keyframes scanline {
@@ -35,7 +35,7 @@ export default function GameOver({ gameState, onRestart }) {
 
       {/* Glitch TRACÉ */}
       <div style={{
-        color: '#ff0000', fontSize: '52px', fontWeight: 'bold',
+        color: '#ff007f', fontSize: '52px', fontWeight: 'bold',
         letterSpacing: '8px', marginBottom: '16px',
         animation: 'glitch 0.4s infinite',
       }}>
@@ -64,12 +64,12 @@ export default function GameOver({ gameState, onRestart }) {
       <button
         onClick={onRestart}
         style={{
-          background: 'transparent', border: '1px solid #ff0000',
-          color: '#ff0000', padding: '12px 36px',
+          background: 'transparent', border: '1px solid #ff007f',
+          color: '#ff007f', padding: '12px 36px',
           fontFamily: 'monospace', fontSize: '13px',
           cursor: 'pointer', letterSpacing: '2px', transition: 'all 0.2s',
         }}
-        onMouseEnter={e => { e.target.style.background = '#ff000015'; }}
+        onMouseEnter={e => { e.target.style.background = '#ff007f15'; }}
         onMouseLeave={e => { e.target.style.background = 'transparent'; }}
       >
         [ RECOMMENCER LA MISSION ]

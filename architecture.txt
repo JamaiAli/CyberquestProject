@@ -1,0 +1,52 @@
+# Architecture et Fonctionnement de CyberQuest
+
+## 1. Vue d'ensemble du projet
+CyberQuest est un jeu de simulation de pentest sous la forme d'un RPG (Role Playing Game) jouable directement dans le navigateur. L'utilisateur y incarne un hacker tentant de compromettre un réseau d'entreprise (CorpNet).
+
+Le projet utilise une architecture client-serveur standard :
+- **Frontend (Client)** : Interface utilisateur (carte, terminal, HUD) qui gère l'affichage et capte les entrées du joueur.
+- **Backend (Serveur)** : Moteur de jeu et API qui traite les commandes, maintient l'état du réseau et des machines, et valide les actions de pentest.
+
+## 2. Architecture Technique
+
+### 2.1 Le Backend (Node.js & Express)
+Situé dans le dossier `/backend`, il s'agit d'un serveur HTTP léger.
+
+**Technologies :** Node.js, Express, Cors.
+
+**Fonctionnement :**
+- `server.js` expose une API REST :
+  - `POST /api/command` : Reçoit une commande tapée par le joueur, l'analyse via le moteur de jeu, met à jour l'état et renvoie le résultat (sortie terminal, nouvelle phase, etc.).
+  - `GET /api/state/:sessionId` : Permet de récupérer l'état actuel d'une session.
+  - `/api/score` et `/api/scoreboard` : Gestion des scores en mémoire.
+- `engine/gameState.js` : Gère l'état des parties en mémoire vive (RAM). Il n'y a pas de base de données persistante, chaque session de joueur est stockée sous forme d'objet Map temporaire.
+- `engine/commandEngine.js` : C'est le cœur de la logique pentest. Il simule des commandes Unix et des outils de sécurité (nmap, nikto, sqlmap, hydra...). Il vérifie si le joueur est dans la bonne "phase" d'attaque (Reconnaissance, Scanning, Exploitation, Post-exploitation) pour autoriser la progression.
+
+### 2.2 Le Frontend (React & Vite)
+Situé dans le dossier `/frontend`, c'est une Single Page Application (SPA).
+
+**Technologies :** React 18, Vite, HTML Canvas, xterm.js (pour l'affichage du terminal), Web Audio API (pour le son).
+
+**Structure et Composants :**
+- `App.jsx` : Composant racine, gère la session utilisateur, les requêtes vers l'API backend et l'état global du côté client.
+- `components/GameMap.jsx` : Affiche la carte du réseau via la balise HTML Canvas. Gère le dessin des salles (Hub, Web Server, DB Server, etc.) et l'animation du personnage.
+- `components/Terminal.jsx` : Intègre `xterm.js` pour fournir une véritable expérience de terminal dans le navigateur. Il capture la saisie et l'envoie à l'API.
+- `components/MachineView.jsx` : Affiche l'interface spécifique lorsqu'on pénètre virtuellement dans une machine (phases d'attaque).
+- `components/HUD.jsx` : Affiche les statistiques du joueur (Niveau, XP, machines compromises).
+
+## 3. Le cycle de vie d'une action (Fonctionnement)
+
+Voici ce qu'il se passe quand le joueur tape une commande comme `nmap 192.168.1.10` :
+
+1. **Saisie :** Le joueur tape la commande dans `Terminal.jsx` et appuie sur Entrée.
+2. **Requête :** Le Frontend envoie une requête HTTP `POST` à `http://localhost:3001/api/command` contenant la commande et l'ID de session.
+3. **Traitement Backend :** 
+   - Express reçoit la requête et la passe à `commandEngine.js`.
+   - Le moteur analyse la commande, vérifie la syntaxe, le contexte actuel (est-ce que le joueur est dans le Hub ou déjà dans une machine ?) et met à jour l'état de la partie (gain d'XP, machine découverte, flag trouvé).
+4. **Réponse :** Le Backend renvoie le texte à afficher dans le terminal (par ex. le résultat du scan nmap) et le nouvel état du jeu.
+5. **Mise à jour Frontend :** Le Frontend reçoit la réponse, met à jour le texte dans le terminal via `xterm.js`, et met à jour l'interface React (la carte peut dévoiler une nouvelle salle, la barre d'XP se remplit).
+
+## 4. Points Clés
+- **Session en mémoire** : Si le serveur Node.js redémarre, toutes les parties en cours sont perdues.
+- **Guidage par phase** : Le pentest de chaque machine est divisé en 4 phases strictes. Il faut valider la bonne commande de la phase 1 pour passer à la phase 2, etc.
+- **Réseau simulé** : Les adresses IP et les outils sont simulés par la logique du code ; aucune vraie requête réseau externe ni "vrai" scan de port n'est exécuté.
