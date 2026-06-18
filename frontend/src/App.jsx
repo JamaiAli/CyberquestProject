@@ -63,6 +63,7 @@ export default function App() {
   const [player, setPlayer]       = useState({ hackerName: 'GHOST', role: 'Hacktiviste', emoji: '🧑‍💻' });
   const [sessionId, setSessionId] = useState('');
   const [gameState, setGameState] = useState(() => makeInitialState(''));
+  const [showAuth, setShowAuth]   = useState(false);
   const [lastCommand, setLastCommand] = useState(null);
   const [pedaInfo, setPedaInfo]   = useState(null);
   const [mapEffect, setMapEffect] = useState(null);
@@ -401,7 +402,7 @@ export default function App() {
     setScreen('intro');
   };
 
-  const handleLoginSuccess = useCallback(async (token, username) => {
+  const loadGameState = useCallback(async (token, username) => {
     setAccessToken(token);
     setUser(username);
     setSessionId(username);
@@ -439,9 +440,37 @@ export default function App() {
 
   // ── Screens ─────────────────────────────────────────────────────────────────
 
+  // ── Screens ─────────────────────────────────────────────────────────────────
+
   // Show the CyVerse-style disclaimer/landing page BEFORE everything else
   if (showDisclaimer) {
-    return <DisclaimerScreen onAccept={() => setShowDisclaimer(false)} />;
+    if (showAuth) {
+      return (
+        <AuthForm 
+          onLoginSuccess={async (token, username) => {
+            await loadGameState(token, username);
+            setShowAuth(false);
+          }} 
+          onClose={() => setShowAuth(false)}
+        />
+      );
+    }
+
+    return (
+      <DisclaimerScreen 
+        user={user}
+        authLoading={authLoading}
+        onLoginClick={() => setShowAuth(true)}
+        onLogout={handleLogout}
+        onAccept={() => {
+          if (!accessToken) {
+            setShowAuth(true); // Require login before launching
+          } else {
+            setShowDisclaimer(false);
+          }
+        }} 
+      />
+    );
   }
 
   if (authLoading) {
@@ -457,7 +486,7 @@ export default function App() {
   }
 
   if (!accessToken) {
-    return <AuthForm onLoginSuccess={handleLoginSuccess} />;
+    return <AuthForm onLoginSuccess={loadGameState} />;
   }
 
   if (screen === 'intro') {

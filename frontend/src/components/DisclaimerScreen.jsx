@@ -51,7 +51,7 @@ function MatrixCanvas() {
 }
 
 /* ── Main component ───────────────────────────────────────────────────────── */
-export default function DisclaimerScreen({ onAccept }) {
+export default function DisclaimerScreen({ onAccept, user, authLoading, onLoginClick, onLogout }) {
   const [loaded, setLoaded] = useState(false);
   const [showContent, setShowContent] = useState(false);
   const [showBtn, setShowBtn] = useState(false);
@@ -70,6 +70,81 @@ export default function DisclaimerScreen({ onAccept }) {
       <div className="disc-overlay" />
 
       <div className="disc-hero">
+        {/* Top right corner for Auth / User ID */}
+        {!authLoading && (
+          <div style={{ position: 'absolute', top: '20px', right: '30px', zIndex: 100 }}>
+            {user ? (
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                <div style={{ 
+                  color: 'var(--neon-blue, #00f0ff)', 
+                  fontFamily: 'monospace', 
+                  fontSize: '14px', 
+                  border: '1px solid var(--neon-blue, #00f0ff)', 
+                  padding: '6px 12px', 
+                  borderRadius: '4px', 
+                  background: 'rgba(0, 240, 255, 0.1)',
+                  animation: 'fadeIn 0.5s ease'
+                }}>
+                  {user}
+                </div>
+                <button
+                  onClick={onLogout}
+                  style={{
+                    background: 'transparent',
+                    border: '1px solid #ff333355',
+                    color: '#ff3333bb',
+                    fontFamily: 'monospace',
+                    fontSize: '10px',
+                    cursor: 'pointer',
+                    padding: '6px 14px',
+                    borderRadius: '3px',
+                    letterSpacing: '1px',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={e => {
+                    e.target.style.color = '#ff3333';
+                    e.target.style.borderColor = '#ff3333';
+                    e.target.style.background = 'rgba(255, 51, 51, 0.05)';
+                  }}
+                  onMouseLeave={e => {
+                    e.target.style.color = '#ff3333bb';
+                    e.target.style.borderColor = '#ff333355';
+                    e.target.style.background = 'transparent';
+                  }}
+                >
+                  ❌ DÉCONNEXION
+                </button>
+              </div>
+            ) : (
+              <button 
+                onClick={onLoginClick}
+                style={{ 
+                  cursor: 'pointer', 
+                  color: 'var(--neon-pink, #ff00ff)', 
+                  fontFamily: 'monospace', 
+                  fontSize: '14px', 
+                  border: '1px solid var(--neon-pink, #ff00ff)', 
+                  padding: '6px 12px', 
+                  borderRadius: '4px', 
+                  background: 'rgba(255, 0, 255, 0.1)',
+                  transition: 'all 0.2s ease',
+                  animation: 'fadeIn 0.5s ease'
+                }}
+                onMouseEnter={e => {
+                  e.target.style.background = 'rgba(255, 0, 255, 0.2)';
+                  e.target.style.boxShadow = '0 0 10px rgba(255, 0, 255, 0.5)';
+                }}
+                onMouseLeave={e => {
+                  e.target.style.background = 'rgba(255, 0, 255, 0.1)';
+                  e.target.style.boxShadow = 'none';
+                }}
+              >
+                [ CONNEXION ]
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Glitch title */}
         <div className={`disc-title-wrap ${loaded ? 'disc-title-wrap--in' : ''}`}>
           <h1 className="disc-title" data-text="CYBERQUEST">CYBERQUEST</h1>

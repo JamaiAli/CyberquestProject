@@ -9,7 +9,7 @@ const SECURITY_QUESTIONS = [
   "Quel est le nom de ton enseignant préféré ?"
 ];
 
-export default function AuthForm({ onLoginSuccess }) {
+export default function AuthForm({ onLoginSuccess, onClose }) {
   const [mode, setMode] = useState('login'); // 'login' | 'register' | 'forgot'
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -188,6 +188,16 @@ export default function AuthForm({ onLoginSuccess }) {
       <MatrixRain opacity={0.06} />
 
       <div style={cardStyle}>
+        {/* Bouton Fermer */}
+        {onClose && (
+          <button
+            onClick={onClose}
+            style={{ position: 'absolute', top: '10px', right: '15px', background: 'transparent', border: 'none', color: '#ff3333', fontSize: '20px', cursor: 'pointer', zIndex: 2000 }}
+          >
+            ✕
+          </button>
+        )}
+
         {/* En-tête du formulaire */}
         <div style={{ textAlign: 'center', marginBottom: '25px' }}>
           <div style={titleStyle}>⚡ CYBERQUEST</div>
@@ -425,10 +435,10 @@ const containerStyle = {
 const cardStyle = {
   position: 'relative',
   zIndex: 10,
-  background: 'rgba(5, 10, 5, 0.85)',
+  background: 'rgba(5, 5, 10, 0.85)',
   border: '1.5px solid #00f0ff',
   borderRadius: '6px',
-  boxShadow: '0 0 30px rgba(0, 255, 65, 0.15), inset 0 0 15px rgba(0, 255, 65, 0.05)',
+  boxShadow: '0 0 30px rgba(0, 240, 255, 0.15), inset 0 0 15px rgba(0, 240, 255, 0.05)',
   padding: '30px 25px',
   width: '100%',
   maxWidth: '430px',
@@ -438,16 +448,16 @@ const cardStyle = {
 };
 
 const titleStyle = {
-  color: '#ff3333',
+  color: '#00f0ff',
   fontSize: '28px',
   fontWeight: 'bold',
   letterSpacing: '5px',
   marginBottom: '4px',
-  textShadow: '0 0 15px rgba(255, 51, 51, 0.6)'
+  textShadow: '0 0 15px rgba(0, 240, 255, 0.6)'
 };
 
 const subtitleStyle = {
-  color: '#00f0ff',
+  color: '#ff00ff',
   fontSize: '9px',
   letterSpacing: '2px',
   opacity: 0.8
@@ -455,7 +465,7 @@ const subtitleStyle = {
 
 const tabContainerStyle = {
   display: 'flex',
-  borderBottom: '1px solid #1a3a20',
+  borderBottom: '1px solid rgba(0, 240, 255, 0.3)',
   marginBottom: '20px'
 };
 
@@ -478,7 +488,7 @@ const tabStyle = {
 const tabActiveStyle = {
   color: '#00f0ff',
   borderBottomColor: '#00f0ff',
-  textShadow: '0 0 10px rgba(0, 255, 65, 0.4)'
+  textShadow: '0 0 10px rgba(0, 240, 255, 0.4)'
 };
 
 const formStyle = {
@@ -493,7 +503,7 @@ const inputGroupStyle = {
 };
 
 const labelStyle = {
-  color: '#1a5c28',
+  color: '#ff00ff',
   fontSize: '9px',
   fontWeight: 'bold',
   letterSpacing: '1px',
@@ -503,7 +513,7 @@ const labelStyle = {
 const inputStyle = {
   width: '100%',
   background: 'rgba(0, 0, 0, 0.6)',
-  border: '1px solid #1a3a20',
+  border: '1px solid rgba(0, 240, 255, 0.3)',
   borderRadius: '3px',
   color: '#00f0ff',
   fontFamily: 'monospace',
@@ -545,7 +555,7 @@ const strengthBarStyle = {
 };
 
 const submitBtnStyle = {
-  background: 'linear-gradient(180deg, rgba(0, 50, 10, 0.6), rgba(0, 20, 5, 0.8))',
+  background: 'linear-gradient(180deg, rgba(0, 240, 255, 0.15), rgba(0, 240, 255, 0.05))',
   border: '1.5px solid #00f0ff',
   borderRadius: '4px',
   color: '#00f0ff',
@@ -557,7 +567,7 @@ const submitBtnStyle = {
   padding: '12px',
   marginTop: '10px',
   transition: 'all 0.2s',
-  boxShadow: '0 0 10px rgba(0, 255, 65, 0.1)'
+  boxShadow: '0 0 10px rgba(0, 240, 255, 0.2)'
 };
 
 const errorStyle = {
@@ -572,7 +582,7 @@ const errorStyle = {
 };
 
 const successStyle = {
-  background: 'rgba(0, 255, 65, 0.08)',
+  background: 'rgba(0, 240, 255, 0.08)',
   border: '1px solid #00f0ff',
   borderRadius: '3px',
   color: '#00f0ff',
@@ -582,7 +592,7 @@ const successStyle = {
 };
 
 const forgotPasswordLinkStyle = {
-  color: '#4a8a5f',
+  color: '#ff00ff',
   fontSize: '10px',
   textAlign: 'center',
   marginTop: '15px',
