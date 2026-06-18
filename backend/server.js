@@ -1,3 +1,5 @@
+require('dotenv').config({ quiet: true });
+
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
@@ -7,6 +9,7 @@ const bcrypt = require('bcryptjs');
 const { processCommand } = require('./engine/commandEngine');
 const db = require('./database/db');
 const { authenticateToken, JWT_SECRET, JWT_REFRESH_SECRET } = require('./middleware/auth');
+const { runChallenge } = require('./llm/challenges');
 
 const app = express();
 
@@ -285,6 +288,43 @@ app.get('/api/state', authenticateToken, async (req, res) => {
     res.json(state);
   } catch (err) {
     res.status(500).json({ error: "Impossible de récupérer l'état de jeu." });
+  }
+});
+
+// ── AI_CORE — Challenges de prompt injection via vraie IA Groq ──
+app.post('/api/sentinel', authenticateToken, async (req, res) => {
+  const { messages, level } = req.body;
+  if (!Array.isArray(messages)) {
+    return res.status(400).json({ error: "Le champ 'messages' (tableau) est requis." });
+  }
+
+  const levelId = typeof level === 'string' ? level : 'corporium';
+
+  try {
+    const result = await runChallenge(levelId, messages);
+
+    // Si le joueur a réussi ce challenge, on crédite les points une seule fois
+    if (result.solved) {
+      const username = req.user.username;
+      const state = await db.getGameState(username);
+      const solvedList = Array.isArray(state?.aiCoreSolvedLevels) ? state.aiCoreSolvedLevels : [];
+      if (state && !solvedList.includes(levelId)) {
+        const bonus = result.points || 200;
+        const newXp = (state.xp || 0) + bonus;
+        const updated = {
+          ...state,
+          xp: newXp,
+          score: (state.score || 0) + bonus,
+          aiCoreSolvedLevels: [...solvedList, levelId],
+        };
+        await db.updateGameState(username, updated, newXp, Math.floor(newXp / 100) + 1);
+      }
+    }
+
+    res.json(result);
+  } catch (err) {
+    console.error('Erreur /api/sentinel:', err);
+    res.status(500).json({ error: "Erreur serveur lors de l'appel à l'IA." });
   }
 });
 
