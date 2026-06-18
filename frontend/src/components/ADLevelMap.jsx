@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { AD_LEVELS } from '../levels/adLevels';
 import CyberpunkCityscape from './CyberpunkCityscape';
 
@@ -18,8 +18,11 @@ function buildNodes(levels) {
 }
 
 export default function ADLevelMap({ onClose, onSelectLevel, currentLevel = 1, completed = [] }) {
+  const [hoveredLevel, setHoveredLevel] = useState(null);
   const nodes  = useMemo(() => buildNodes(AD_LEVELS), []);
   const height = 100 + TOTAL * 150 + 80;
+
+  const hoveredNode = hoveredLevel ? AD_LEVELS.find(l => l.n === hoveredLevel) : null;
 
   const pathD = nodes
     .map((nd, i) => `${i === 0 ? 'M' : 'L'} ${nd.x} ${nd.y}`)
@@ -113,8 +116,14 @@ export default function ADLevelMap({ onClose, onSelectLevel, currentLevel = 1, c
                     transition: 'transform 0.2s ease, box-shadow 0.2s ease',
                     animation: status === 'current' ? 'pulse 1.6s ease-in-out infinite' : 'none',
                   }}
-                  onMouseEnter={e => { if (!isLocked) e.currentTarget.style.transform = 'scale(1.15)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
+                  onMouseEnter={e => { 
+                    if (!isLocked) e.currentTarget.style.transform = 'scale(1.15)'; 
+                    setHoveredLevel(nd.n);
+                  }}
+                  onMouseLeave={e => { 
+                    e.currentTarget.style.transform = 'scale(1)'; 
+                    setHoveredLevel(null);
+                  }}
                 >
                   {/* Inner hexagon for border effect since clip-path cuts real borders */}
                   <div style={{
@@ -145,6 +154,40 @@ export default function ADLevelMap({ onClose, onSelectLevel, currentLevel = 1, c
             );
           })}
         </div>
+      </div>
+
+      {/* Side Panel Info */}
+      <div style={{
+        position: 'absolute', top: '65px', right: 0, bottom: 0, width: '350px',
+        background: 'rgba(2, 5, 12, 0.98)', borderLeft: '1px solid rgba(0, 240, 255, 0.3)',
+        padding: '30px 24px', display: 'flex', flexDirection: 'column',
+        boxShadow: '-10px 0 30px rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)',
+        transform: hoveredNode ? 'translateX(0)' : 'translateX(100%)',
+        transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        zIndex: 10,
+        pointerEvents: 'none' // allow clicks to pass through if needed, though it's on the side
+      }}>
+        {hoveredNode && (
+          <>
+            <div style={{ color: 'var(--neon-blue)', fontSize: '14px', letterSpacing: '2px', marginBottom: '8px', fontWeight: 'bold' }}>
+              ÉTAPE {hoveredNode.n}
+            </div>
+            <div className="cyber-font" style={{ color: '#fff', fontSize: '24px', fontWeight: 'bold', letterSpacing: '1px', marginBottom: '20px', textShadow: '0 0 10px rgba(255,255,255,0.3)', lineHeight: '1.2' }}>
+              {hoveredNode.title}
+            </div>
+            <div style={{ background: 'rgba(0, 255, 101, 0.1)', border: '1px solid #00ff65', color: '#00ff65', padding: '8px 12px', fontSize: '12px', borderRadius: '4px', marginBottom: '30px', fontWeight: '600' }}>
+              {hoveredNode.mitre}
+            </div>
+            <div style={{ color: '#a0b0c0', fontSize: '15px', lineHeight: '1.6', letterSpacing: '0.5px' }}>
+              {hoveredNode.intro}
+            </div>
+            <div style={{ marginTop: 'auto', paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+               <div style={{ color: statusOf(hoveredNode.n) === 'locked' ? '#ff3333' : '#00ffcc', fontSize: '13px', letterSpacing: '1px', fontWeight: 'bold' }}>
+                 STATUT : {statusOf(hoveredNode.n) === 'done' ? 'COMPLÉTÉ ✓' : statusOf(hoveredNode.n) === 'current' ? 'EN COURS ⚡' : 'VERROUILLÉ 🔒'}
+               </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
