@@ -11,9 +11,8 @@ const CH = MAP_ROWS * S; // 672
 const CABLES = [
   { from: 'kali',       to: 'webserver',  pts: [[480,144],[480,216],[168,216],[168,288]] },
   { from: 'kali',       to: 'mailserver', pts: [[480,144],[480,216],[744,216],[744,288]] },
-  { from: 'webserver',  to: 'dbserver',   pts: [[168,384],[168,216],[480,216],[480,432]] },
-  { from: 'mailserver', to: 'dbserver',   pts: [[744,384],[744,216],[480,216],[480,432]] },
-  { from: 'dbserver',   to: 'dc',         pts: [[480,528],[480,576]] },
+  { from: 'webserver',  to: 'aicore',     pts: [[168,384],[168,216],[480,216],[480,432]] },
+  { from: 'mailserver', to: 'aicore',     pts: [[744,384],[744,216],[480,216],[480,432]] },
 ];
 
 const DIFF_COLOR = { easy: '#00cc55', medium: '#ccaa00', hard: '#cc2200' };
@@ -43,6 +42,19 @@ function pointOnPolyline(pts, prog) {
 
 // ── Drawing helpers ──────────────────────────────────────────────────────────
 
+function drawChamferRect(ctx, x, y, w, h, cut) {
+  ctx.beginPath();
+  ctx.moveTo(x + cut, y);
+  ctx.lineTo(x + w - cut, y);
+  ctx.lineTo(x + w, y + cut);
+  ctx.lineTo(x + w, y + h - cut);
+  ctx.lineTo(x + w - cut, y + h);
+  ctx.lineTo(x + cut, y + h);
+  ctx.lineTo(x, y + h - cut);
+  ctx.lineTo(x, y + cut);
+  ctx.closePath();
+}
+
 function drawRoadDash(ctx, x1, y1, x2, y2) {
   ctx.strokeStyle = 'rgba(0,80,170,0.14)';
   ctx.lineWidth = 1;
@@ -58,7 +70,7 @@ function drawCable(ctx, cable, pwned, scanned, t) {
   const comp   = pwned.includes(to);
 
   ctx.save();
-  ctx.shadowColor = comp ? '#00ff41' : active ? '#0099ff' : 'transparent';
+  ctx.shadowColor = comp ? '#00f0ff' : active ? '#0099ff' : 'transparent';
   ctx.shadowBlur  = comp ? 12 : active ? 7 : 0;
   ctx.strokeStyle = comp
     ? 'rgba(0,255,65,0.8)'
@@ -76,7 +88,7 @@ function drawCable(ctx, cable, pwned, scanned, t) {
   // Animated data particles
   if (active) {
     const n = comp ? 5 : 2;
-    const col = comp ? '#00ff41' : '#44aaff';
+    const col = comp ? '#00f0ff' : '#44aaff';
     for (let i = 0; i < n; i++) {
       const p = ((t * 0.011 + i / n) % 1);
       const [px, py] = pointOnPolyline(pts, p);
@@ -88,36 +100,7 @@ function drawCable(ctx, cable, pwned, scanned, t) {
   }
 }
 
-function drawFirewall(ctx, t) {
-  const fy = 11 * S;
-  const p = 0.6 + Math.sin(t * 0.07) * 0.4;
 
-  if (Math.floor(t / 18) % 2 === 0) {
-    ctx.fillStyle = 'rgba(160,0,0,0.05)';
-    ctx.fillRect(7 * S, fy, 6 * S, S);
-  }
-
-  // Gate posts on sides of path
-  [7 * S + S - 3, 12 * S].forEach(bx => {
-    ctx.fillStyle = `rgba(220,30,30,${p})`;
-    ctx.shadowColor = '#ff1100'; ctx.shadowBlur = 14;
-    ctx.fillRect(bx, fy + 3, 3, S - 6);
-    ctx.shadowBlur = 0;
-  });
-
-  // Dashed barrier line
-  ctx.strokeStyle = `rgba(200,20,0,${p * 0.6})`;
-  ctx.lineWidth = 1.5; ctx.setLineDash([5, 5]);
-  ctx.beginPath(); ctx.moveTo(8 * S, fy + 24); ctx.lineTo(12 * S, fy + 24);
-  ctx.stroke(); ctx.setLineDash([]);
-
-  // Warning label
-  ctx.font = 'bold 8px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillStyle = `rgba(255,50,0,${p * 0.9})`;
-  ctx.shadowColor = '#ff2200'; ctx.shadowBlur = 8;
-  ctx.fillText('▓ FIREWALL ▓', CW / 2, fy + 24);
-  ctx.shadowBlur = 0;
-}
 
 // ── Building renderers ───────────────────────────────────────────────────────
 
@@ -125,11 +108,22 @@ function drawKali(ctx, pos, t, hackerName) {
   const x = pos.col * S, y = pos.row * S, w = pos.w * S, h = pos.h * S;
   const p = 0.75 + Math.sin(t * 0.06) * 0.25;
 
-  ctx.shadowColor = '#00ff41'; ctx.shadowBlur = 22 * p;
-  ctx.fillStyle = '#001808';
-  ctx.beginPath(); ctx.roundRect(x, y, w, h, 4); ctx.fill();
-  ctx.strokeStyle = `rgba(0,255,65,${0.75 * p})`; ctx.lineWidth = 2; ctx.stroke();
+  ctx.shadowColor = '#00f0ff'; ctx.shadowBlur = 22 * p;
+  ctx.fillStyle = 'rgba(0, 15, 20, 0.9)';
+  drawChamferRect(ctx, x, y, w, h, 8); ctx.fill();
+  
+  // Outer glowing border
+  ctx.strokeStyle = `rgba(0, 240, 255, ${0.75 * p})`; ctx.lineWidth = 2; ctx.stroke();
+  
+  // Inner subtle border
+  ctx.strokeStyle = `rgba(0, 240, 255, ${0.3 * p})`; ctx.lineWidth = 1;
+  drawChamferRect(ctx, x + 4, y + 4, w - 8, h - 8, 4); ctx.stroke();
   ctx.shadowBlur = 0;
+
+  // Decorative corner brackets
+  ctx.strokeStyle = '#00f0ff'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(x - 2, y + 15); ctx.lineTo(x - 2, y - 2); ctx.lineTo(x + 15, y - 2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x + w + 2, y + h - 15); ctx.lineTo(x + w + 2, y + h + 2); ctx.lineTo(x + w - 15, y + h + 2); ctx.stroke();
 
   // Circuit board lines inside
   ctx.strokeStyle = 'rgba(0,255,65,0.1)'; ctx.lineWidth = 0.8;
@@ -143,10 +137,10 @@ function drawKali(ctx, pos, t, hackerName) {
   sg.addColorStop(0, `rgba(0,255,65,${0.2 * p})`); sg.addColorStop(1, 'rgba(0,255,65,0)');
   ctx.fillStyle = sg; ctx.fillRect(x, y, w, h);
 
-  ctx.font = '20px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = '20px Orbitron, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText('💻', x + w / 2, y + h / 2 - 11);
-  ctx.font = 'bold 8px monospace'; ctx.fillStyle = `rgba(0,255,65,${p})`; ctx.textBaseline = 'alphabetic';
-  ctx.fillText('KALI  BASE', x + w / 2, y + h / 2 + 4);
+  ctx.font = 'bold 10px Orbitron, sans-serif'; ctx.fillStyle = `rgba(0,240,255,${p})`; ctx.textBaseline = 'alphabetic';
+  ctx.fillText('KALI_BASE', x + w / 2, y + h / 2 + 6);
   if (hackerName) {
     ctx.font = '7px monospace'; ctx.fillStyle = 'rgba(0,200,50,0.5)';
     ctx.fillText(hackerName, x + w / 2, y + h / 2 + 14);
@@ -155,8 +149,8 @@ function drawKali(ctx, pos, t, hackerName) {
   // Blinking LED top-right corner
   const on = Math.floor(t / 20) % 2 === 0;
   ctx.beginPath(); ctx.arc(x + w - 10, y + 9, 4, 0, Math.PI * 2);
-  ctx.fillStyle = on ? '#00ff41' : '#002210';
-  ctx.shadowColor = on ? '#00ff41' : 'transparent'; ctx.shadowBlur = on ? 8 : 0;
+  ctx.fillStyle = on ? '#00f0ff' : '#002210';
+  ctx.shadowColor = on ? '#00f0ff' : 'transparent'; ctx.shadowBlur = on ? 8 : 0;
   ctx.fill(); ctx.shadowBlur = 0;
 }
 
@@ -168,25 +162,41 @@ function drawServer(ctx, id, pos, state, t) {
   const theme = {
     webserver:  { fill: '#000d1a', line: '#0066cc', glow: '#0099ff' },
     mailserver: { fill: '#0e0800', line: '#995500', glow: '#ffaa00' },
-    dbserver:   { fill: '#09000f', line: '#550088', glow: '#aa44ff' },
-    dc:         { fill: '#120000', line: '#880000', glow: '#ff2200' },
+    aicore:     { fill: '#001a08', line: '#007a20', glow: '#00f0ff' },
   };
   const c = theme[id] || theme.webserver;
   const accentColor = active ? '#ff6600' : nearby ? '#ffcc00' : null;
 
   // Shadow glow
   ctx.shadowColor = locked ? 'transparent'
-    : accentColor || (pwned ? '#00ff41' : scanned ? c.glow : nearby ? c.glow : c.line);
+    : accentColor || (pwned ? '#00f0ff' : scanned ? c.glow : nearby ? c.glow : c.line);
   ctx.shadowBlur = locked ? 0 : accentColor ? 22 * p : pwned ? 18 * p : scanned ? 10 * p : nearby ? 14 * p : 4;
 
-  // Body
+  // Body Background
   ctx.fillStyle = locked ? '#04080c'
-    : pwned ? '#001f08' : active ? '#130700' : nearby ? '#0f0e00' : c.fill;
-  ctx.beginPath(); ctx.roundRect(x, y, w, h, 3); ctx.fill();
-  ctx.strokeStyle = locked ? '#101820'
-    : accentColor || (pwned ? '#00dd55' : scanned ? c.line + 'aa' : c.line + '44');
+    : pwned ? 'rgba(0, 30, 40, 0.9)' : active ? 'rgba(20, 5, 10, 0.9)' : nearby ? 'rgba(15, 15, 0, 0.9)' : c.fill;
+  drawChamferRect(ctx, x, y, w, h, 6); ctx.fill();
+  
+  // Outer Border
+  const bColor = locked ? '#101820'
+    : accentColor || (pwned ? '#00f0ff' : scanned ? c.line + 'aa' : c.line + '44');
+  ctx.strokeStyle = bColor;
   ctx.lineWidth = (active || nearby) ? 2 : 1.5;
   ctx.stroke(); ctx.shadowBlur = 0;
+
+  // Inner Technical Border
+  if (!locked) {
+    ctx.strokeStyle = (pwned || active) ? `${bColor.substring(0, 7)}44` : c.line + '22';
+    ctx.lineWidth = 1;
+    drawChamferRect(ctx, x + 3, y + 3, w - 6, h - 6, 4); ctx.stroke();
+    
+    // Cyberpunk Edge Notches
+    ctx.fillStyle = bColor;
+    ctx.fillRect(x + w / 2 - 10, y - 1, 20, 3); // top notch
+    ctx.fillRect(x + w / 2 - 10, y + h - 2, 20, 3); // bottom notch
+    ctx.fillRect(x - 1, y + h / 2 - 6, 3, 12); // left notch
+    ctx.fillRect(x + w - 2, y + h / 2 - 6, 3, 12); // right notch
+  }
 
   // Static noise on locked machines
   if (locked) {
@@ -200,17 +210,17 @@ function drawServer(ctx, id, pos, state, t) {
   if (!locked) {
     if (id === 'webserver') {
       const ax = x + w / 2, ay = y + 9;
-      ctx.strokeStyle = pwned ? '#00ff41' : c.line + '99'; ctx.lineWidth = 1.5;
+      ctx.strokeStyle = pwned ? '#00f0ff' : c.line + '99'; ctx.lineWidth = 1.5;
       ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(ax, y + h - 18); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(ax - 12, ay + 7); ctx.lineTo(ax + 12, ay + 7); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(ax - 7,  ay + 2); ctx.lineTo(ax + 7,  ay + 2); ctx.stroke();
       const blinkOn = Math.floor(t / 14) % 2 === 0 || pwned;
       ctx.beginPath(); ctx.arc(ax, ay, 3, 0, Math.PI * 2);
-      ctx.fillStyle = pwned ? '#00ff41' : blinkOn ? 'rgba(0,150,255,0.8)' : 'rgba(0,50,100,0.4)'; ctx.fill();
+      ctx.fillStyle = pwned ? '#00f0ff' : blinkOn ? 'rgba(0,150,255,0.8)' : 'rgba(0,50,100,0.4)'; ctx.fill();
     }
     if (id === 'mailserver') {
       const ex = x + 14, ey = y + 10, ew = w - 28, eh = 22;
-      ctx.strokeStyle = pwned ? '#00ff41' : c.line + '88'; ctx.lineWidth = 1.2;
+      ctx.strokeStyle = pwned ? '#00f0ff' : c.line + '88'; ctx.lineWidth = 1.2;
       ctx.strokeRect(ex, ey, ew, eh);
       ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(ex + ew / 2, ey + eh * 0.55); ctx.lineTo(ex + ew, ey); ctx.stroke();
     }
@@ -218,16 +228,16 @@ function drawServer(ctx, id, pos, state, t) {
       [[x + w * 0.3, y + h * 0.38], [x + w * 0.7, y + h * 0.38]].forEach(([cx, cy]) => {
         ctx.beginPath(); ctx.ellipse(cx, cy, 13, 5, 0, 0, Math.PI * 2);
         ctx.fillStyle = pwned ? 'rgba(0,255,65,0.09)' : 'rgba(100,0,180,0.12)'; ctx.fill();
-        ctx.strokeStyle = pwned ? '#00ff41' : c.line + '77'; ctx.lineWidth = 1.2; ctx.stroke();
+        ctx.strokeStyle = pwned ? '#00f0ff' : c.line + '77'; ctx.lineWidth = 1.2; ctx.stroke();
         ctx.beginPath(); ctx.ellipse(cx, cy - 5, 13, 5, 0, 0, Math.PI * 2); ctx.stroke();
       });
     }
     if (id === 'dc') {
       [[x + 2, y + 2],[x + w - 10, y + 2],[x + 2, y + h - 10],[x + w - 10, y + h - 10]].forEach(([tx, ty]) => {
         ctx.fillStyle = pwned ? 'rgba(0,255,65,0.15)' : 'rgba(180,0,0,0.22)'; ctx.fillRect(tx, ty, 8, 8);
-        ctx.strokeStyle = pwned ? '#00ff41' : c.line; ctx.lineWidth = 1; ctx.strokeRect(tx, ty, 8, 8);
+        ctx.strokeStyle = pwned ? '#00f0ff' : c.line; ctx.lineWidth = 1; ctx.strokeRect(tx, ty, 8, 8);
       });
-      ctx.strokeStyle = pwned ? '#00ff41aa' : c.line + '55'; ctx.lineWidth = 1;
+      ctx.strokeStyle = pwned ? '#00f0ffaa' : c.line + '55'; ctx.lineWidth = 1;
       ctx.setLineDash([3, 3]); ctx.strokeRect(x + 12, y + 10, w - 24, h - 20); ctx.setLineDash([]);
       const dr = 18 + Math.sin(t * 0.08) * 5;
       ctx.beginPath(); ctx.arc(x + w / 2, y + h / 2, dr, 0, Math.PI * 2);
@@ -242,14 +252,14 @@ function drawServer(ctx, id, pos, state, t) {
   ctx.fillText(locked ? '🔒' : pos.icon, x + w / 2, y + h / 2 - 10);
 
   // Name
-  ctx.font = 'bold 8px monospace'; ctx.textBaseline = 'alphabetic';
+  ctx.font = 'bold 9px Orbitron, sans-serif'; ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = locked ? '#1a2530'
-    : pwned ? '#00ff41' : active ? '#ff9944' : nearby ? '#ffcc44' : scanned ? c.glow : '#334455';
-  ctx.fillText(locked ? '???' : pos.name, x + w / 2, y + h / 2 + 4);
+    : pwned ? '#00f0ff' : active ? '#ff007f' : nearby ? '#ffcc44' : scanned ? c.glow : '#445566';
+  ctx.fillText(locked ? '???' : pos.name.toUpperCase(), x + w / 2, y + h / 2 + 6);
 
   // IP
-  ctx.font = '7px monospace'; ctx.fillStyle = locked ? '#0a0f14' : '#1a2a35';
-  ctx.fillText(locked ? '???.???.???.???' : pos.ip, x + w / 2, y + h / 2 + 13);
+  ctx.font = '8px Rajdhani, monospace'; ctx.fillStyle = locked ? '#0a0f14' : '#2a3a45';
+  ctx.fillText(locked ? '???.???.???.???' : pos.ip, x + w / 2, y + h / 2 + 16);
 
   // Status badge above building
   if (pwned) {
@@ -297,7 +307,7 @@ function drawGhost(ctx, pos, isMoving, emoji, name, t) {
 
   // Walk animation
   const frames = isMoving ? ['🧑‍💻', '🏃'] : [emoji || '🧑‍💻'];
-  ctx.shadowColor = '#00ff41'; ctx.shadowBlur = 14;
+  ctx.shadowColor = '#00f0ff'; ctx.shadowBlur = 14;
   ctx.font = '20px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText(frames[Math.floor(t / 8) % frames.length], x, y - 2);
   ctx.shadowBlur = 0;
@@ -368,7 +378,7 @@ export default function GameMap({ ghostTileRef, nearbyMachineRef, gameState, eff
       ENTER_MACHINE:  [effect.machine?.name ? `⚡ ${effect.machine.name}` : '⚡', '#ff8800'],
       EXIT_MACHINE:   ['← Réseau', '#00ffff'],
       FLAG_FOUND:     ['🚩 FLAG !', '#ffd700'],
-      PHASE_COMPLETE: ['✅ Phase OK', '#00ff41'],
+      PHASE_COMPLETE: ['✅ Phase OK', '#00f0ff'],
       ROOT_OBTAINED:  ['👑 ROOT !', '#ff4444'],
       SCAN_NETWORK:   ['📡 Cartographié', '#00ffff'],
     }[effect.type];
@@ -396,7 +406,7 @@ export default function GameMap({ ghostTileRef, nearbyMachineRef, gameState, eff
       const isMoving = Math.hypot(tgtX - charPos.current.x, tgtY - charPos.current.y) > 2;
 
       // ── 1. Background ────────────────────────────────────────────────────
-      ctx.fillStyle = '#00040e';
+      ctx.fillStyle = '#020205';
       ctx.fillRect(0, 0, CW, CH);
 
       // ── 2. Floor tiles (lit asphalt corridors) ───────────────────────────
@@ -404,20 +414,40 @@ export default function GameMap({ ghostTileRef, nearbyMachineRef, gameState, eff
         row.forEach((cell, c) => {
           if (cell !== TILE.FLOOR) return;
           const px = c * S, py = r * S;
-          ctx.fillStyle = '#00101e';
+          ctx.fillStyle = 'rgba(0, 20, 30, 0.4)';
           ctx.fillRect(px, py, S, S);
-          ctx.strokeStyle = 'rgba(0,70,140,0.18)'; ctx.lineWidth = 0.5;
+          ctx.strokeStyle = 'rgba(0, 240, 255, 0.08)'; ctx.lineWidth = 1;
           ctx.strokeRect(px + 1, py + 1, S - 2, S - 2);
         });
       });
 
-      // ── 3. Blueprint grid ────────────────────────────────────────────────
-      ctx.strokeStyle = 'rgba(0,50,120,0.09)'; ctx.lineWidth = 0.5;
-      for (let c = 0; c <= MAP_COLS; c++) {
-        ctx.beginPath(); ctx.moveTo(c * S, 0); ctx.lineTo(c * S, CH); ctx.stroke();
+      // ── 3. Cyberpunk Hex Grid & Particles ────────────────────────────────
+      ctx.strokeStyle = 'rgba(0, 240, 255, 0.04)'; ctx.lineWidth = 1;
+      const hexR = 22;
+      const dy = hexR * 1.5;
+      const dx = hexR * Math.sqrt(3);
+      ctx.beginPath();
+      for (let y = 0; y < CH + hexR; y += dy) {
+        for (let x = 0; x < CW + dx; x += dx) {
+          const cx = x + ((y / dy) % 2 === 0 ? 0 : dx / 2);
+          for (let i = 0; i < 6; i++) {
+            const angle = Math.PI / 3 * i;
+            const px = cx + hexR * Math.cos(angle);
+            const py = y + hexR * Math.sin(angle);
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+          }
+          ctx.closePath();
+        }
       }
-      for (let r = 0; r <= MAP_ROWS; r++) {
-        ctx.beginPath(); ctx.moveTo(0, r * S); ctx.lineTo(CW, r * S); ctx.stroke();
+      ctx.stroke();
+
+      // Data particles
+      ctx.fillStyle = 'rgba(255, 0, 127, 0.5)';
+      for (let i = 0; i < 50; i++) {
+        const px = ((i * 137 + t * 0.1) % CW);
+        const py = ((i * 251 - t * 0.3 + CH) % CH);
+        ctx.beginPath(); ctx.arc(px, py, i % 3 === 0 ? 1.5 : 0.8, 0, Math.PI * 2); ctx.fill();
       }
 
       // ── 4. Road center-dashes on corridors ──────────────────────────────
@@ -425,13 +455,12 @@ export default function GameMap({ ghostTileRef, nearbyMachineRef, gameState, eff
       drawRoadDash(ctx, 9 * S + S / 2,  3 * S,         9 * S + S / 2,  9 * S);          // central vertical
       drawRoadDash(ctx, 3 * S + S / 2,  4 * S,         3 * S + S / 2,  6 * S);          // left branch
       drawRoadDash(ctx, 15 * S + S / 2, 4 * S,         15 * S + S / 2, 6 * S);          // right branch
-      drawRoadDash(ctx, 9 * S + S / 2,  8 * S,         9 * S + S / 2,  12 * S);         // bypass+firewall
+      drawRoadDash(ctx, 9 * S + S / 2,  8 * S,         9 * S + S / 2,  11 * S);         // bypass+firewall top
+      drawRoadDash(ctx, 7 * S + S / 2,  11 * S,        7 * S + S / 2,  14 * S);         // left bypass DC
+      drawRoadDash(ctx, 12 * S + S / 2, 11 * S,        12 * S + S / 2, 14 * S);         // right bypass DC
 
       // ── 5. Network cables ────────────────────────────────────────────────
       CABLES.forEach(cable => drawCable(ctx, cable, pwned, scanned, t));
-
-      // ── 6. Firewall barrier ──────────────────────────────────────────────
-      drawFirewall(ctx, t);
 
       // ── 7. Buildings ─────────────────────────────────────────────────────
       Object.entries(MACHINE_POSITIONS).forEach(([id, pos]) => {
@@ -462,11 +491,7 @@ export default function GameMap({ ghostTileRef, nearbyMachineRef, gameState, eff
       vig.addColorStop(0, 'rgba(0,0,0,0)'); vig.addColorStop(1, 'rgba(0,0,10,0.62)');
       ctx.fillStyle = vig; ctx.fillRect(0, 0, CW, CH);
 
-      // ── 11. Top bar ───────────────────────────────────────────────────────
-      ctx.fillStyle = 'rgba(0,2,10,0.92)'; ctx.fillRect(0, 0, CW, 14);
-      ctx.fillStyle = 'rgba(0,150,255,0.55)'; ctx.font = '8px monospace';
-      ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-      ctx.fillText(`📡  NEXUS CORP  ·  192.168.1.0/24  ·  Machines pwned : ${pwned.length} / 4`, 8, 7);
+
 
       // ── 12. Bottom hint ───────────────────────────────────────────────────
       ctx.fillStyle = 'rgba(0,2,10,0.85)'; ctx.fillRect(0, CH - 14, CW, 14);
