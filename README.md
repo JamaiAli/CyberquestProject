@@ -1,6 +1,18 @@
 # CyberQuest — Pentest RPG
 
-Un jeu de simulation de pentest où tu incarnes un hacker infiltrant le réseau de NEXUS Corp. Déplace ton personnage GHOST sur une carte top-down vue de dessus, approche-toi des machines cibles, et attaque-les depuis le terminal intégré. Récupère les 4 flags avant la fin du compte à rebours de 6 minutes.
+> Plateforme d'apprentissage de la cybersécurité sous forme de jeu RPG. Incarne GHOST, un hacker infiltrant le réseau de NEXUS Corp. Déplace ton personnage sur une carte top-down, attaque les machines depuis un terminal intégré, et progresse à travers 5 salles spécialisées guidées par une IA.
+
+---
+
+## Rooms disponibles
+
+| Room | Thème | Niveaux |
+|------|-------|---------|
+| 🌐 **Web Application** | DVWA, Docker, SQLi, XSS, CSRF, LFI | 6 |
+| 🪟 **Active Directory** | nmap → CVE-2021-41773 → PrivEsc → Pass-the-Hash | 6 |
+| 🐧 **Linux Training** | Navigation, permissions, réseau, shell avancé | 8 |
+| 🧠 **Prompt Injection** | Sécurité LLM, jailbreak, défenses IA | 4 |
+| 🤖 **AI Core** | Architecture IA, biais, adversarial ML | 4 |
 
 ---
 
@@ -9,320 +21,353 @@ Un jeu de simulation de pentest où tu incarnes un hacker infiltrant le réseau 
 - **Node.js** v18+
 - **npm**
 - Un navigateur moderne (Chrome, Firefox, Edge)
+- Clés API : Google Gemini (aistudio.google.com) et/ou Groq (console.groq.com)
 
 ---
 
 ## Installation & Lancement
 
-### 1. Backend (moteur de jeu)
+### 1. Backend
 
 ```bash
 cd backend
 npm install
-node server.js
 ```
 
-Le backend démarre sur **http://localhost:3001**. Tu dois voir :
+Crée le fichier `backend/.env` :
+
+```env
+LLM_PROVIDER=gemini
+
+GEMINI_API_KEY=ta_cle_1
+GEMINI_API_KEY_2=ta_cle_2
+GEMINI_API_KEY_3=ta_cle_3
+GEMINI_API_KEY_4=ta_cle_4
+GEMINI_MODEL=gemini-2.5-flash
+
+GROQ_API_KEY=gsk_...
+GROQ_MODEL=llama-3.3-70b-versatile
 ```
-CyberQuest backend on port 3001
+
+```bash
+node server.js
+# → CyberQuest backend on port 3001
 ```
 
 ### 2. Frontend
-
-Dans un **deuxième terminal** :
 
 ```bash
 cd frontend
 npm install
 npm run dev
+# → http://localhost:5173
 ```
-
-Le frontend démarre sur **http://localhost:5173**
-
-### 3. Jouer
-
-Ouvre **http://localhost:5173** dans ton navigateur.
 
 ---
 
-## Comment tester le projet
+## Architecture simplifiée
 
-### Étape 1 — Sélection du personnage
+Vue d'ensemble en 3 couches — joueur, application, IA.
 
-Au lancement, l'écran de sélection affiche trois personnages :
-- **GHOST** 🧑‍💻 — Hacktiviste (+20% XP exploit web)
-- **PHANTOM** 👤 — Spécialiste réseau (+20% XP scans nmap)
-- **VIPER** 🐍 — Social Engineer (+20% XP hydra & creds)
+```mermaid
+graph TB
+    P(("🧑‍💻 Joueur"))
 
-Clique sur un personnage, tape ton alias, puis clique **LANCER LA MISSION**.
+    P -- "flèches / clavier" --> UI
+    P -- "question MENTOR" --> UI
 
-### Étape 2 — Séquence d'intro
+    subgraph UI ["🖥️  Frontend — React + Vite  :5173"]
+        direction LR
+        MAP["🗺️ Carte\ninteractive"]
+        TERM["⌨️ Terminal\npentest"]
+        BOT["🎓 MENTOR\nAssistant"]
+        VFS["📁 VFS local\nls · cd · pwd\n(0 appel API)"]
+        TERM --> VFS
+    end
 
-L'intro cinématique affiche le briefing mission. Clique sur **COMMENCER L'INFILTRATION** pour entrer dans le jeu.
+    UI -- "REST · JWT" --> API
 
-### Étape 3 — Se déplacer sur la carte
+    subgraph API ["⚙️  Backend — Express  :3001"]
+        direction LR
+        SRV["server.js\n/api/linux-sim\n/api/ad-sim\n/api/assistant\n/api/auth"]
+        DB[("🗃️ SQLite\ngame state")]
+        SRV --- DB
+    end
 
-La carte représente le réseau NEXUS Corp vu de dessus, la nuit. GHOST apparaît juste en dessous de sa base Kali Linux (en haut au centre).
+    API -- "OpenAI-compat." --> LLM
 
-| Touche | Action |
-|--------|--------|
-| `↑` `↓` `←` `→` | Déplacer GHOST case par case |
+    subgraph LLM ["🤖  LLM — Rotation automatique"]
+        direction LR
+        G1["Gemini\nclé 1"]
+        G2["Gemini\nclé 2"]
+        G3["Gemini\nclé 3"]
+        G4["Gemini\nclé 4"]
+        GR["Groq\n(secours final)"]
+        G1 -- "429 →" --> G2 -- "429 →" --> G3 -- "429 →" --> G4 -- "429 →" --> GR
+    end
 
-Quand GHOST s'approche d'une machine, une **bulle d'interaction** apparaît au-dessus de lui et ORACLE envoie un message dans le terminal.
-
-> **Important** : les flèches déplacent exclusivement GHOST sur la carte. Toutes les autres touches (lettres, chiffres, Entrée) vont dans le terminal.
-
-### Étape 4 — Tester la chaîne d'attaque complète
-
-Lance le backend, ouvre le jeu, puis joue la séquence suivante dans le terminal :
-
-#### A. Cartographier le réseau
+    style UI fill:#001a0a,stroke:#00ff88,color:#00ff88
+    style API fill:#00001a,stroke:#4488ff,color:#88aaff
+    style LLM fill:#1a0020,stroke:#cc44ff,color:#dd88ff
 ```
-nmap 192.168.1.0/24
+
+---
+
+## Architecture détaillée
+
+Tous les composants, routes et flux de données.
+
+```mermaid
+graph TB
+    subgraph FE ["🖥️  Frontend — React + Vite  :5173"]
+        direction TB
+
+        APP["App.jsx\nMachine à états · JWT\nselect › intro › game › fin\nbuildAssistantContext()"]
+
+        subgraph SCREENS ["Écrans"]
+            CS["CharacterSelect\nGHOST / PHANTOM / VIPER"]
+            IS["IntroScreen\nbriefing cinématique"]
+            GO["GameOver · Victory"]
+        end
+
+        subgraph GAME ["Jeu principal"]
+            GM["GameMap\nCanvas 2D 960×672\ntilemap · GHOST lerp\nbâtiments · câbles"]
+            TRM["LevelTerminal\nhistorique · prompt\ncouleurs ANSI"]
+            HUD["HUD\ntimer · XP · progression"]
+            BOT["AssistantBot 🎓\nMENTOR flottant\nsuggestions · historique"]
+        end
+
+        subgraph ROOMS ["Vues de salle"]
+            WEB["WebLevelView\n6 niveaux DVWA"]
+            ADV["ADLevelView\n6 étapes AD\nprompt: kali›shell›root›mysql›winrm"]
+            LNX["LinuxLevelView\n8 niveaux Linux"]
+            PIL["PILevelView\nPrompt Injection"]
+        end
+
+        subgraph UTILS ["Utilitaires"]
+            VFS["linuxSimulator.js\nVFS local — runLocal()\nls·cd·pwd·mkdir·rm·touch\n0 appel API"]
+            ADS["adSimulator.js\nAD_VFS kali/shell/root\nhandleADCommand()"]
+        end
+
+        subgraph LEVELS ["Définitions niveaux"]
+            WL["webLevels.js"]
+            AL["adLevels.js\nhandleADTerm()\n chaîne scriptée"]
+            LL["linuxLevels.js"]
+            PL["piLevels.js"]
+        end
+
+        MAP["map.js\nNETWORK_MAP 20×14\nGHOST_SPAWN\nmachines · positions"]
+    end
+
+    subgraph BE ["⚙️  Backend — Node.js + Express  :3001"]
+        direction TB
+
+        SRV["server.js\nJWT auth middleware\nPOST /api/auth/register\nPOST /api/auth/login\nPOST /api/command\nPOST /api/linux-sim\nPOST /api/ad-sim\nPOST /api/assistant\nGET  /api/state"]
+
+        DB[("SQLite\ncyberquest.db\nusers · game_state\nlevel_progress")]
+
+        subgraph LLM_LAYER ["LLM Layer"]
+            CLIENT["client.js\nRotation 4 clés Gemini\nFallback Groq\nfallbackOnEmpty"]
+            LSIM["linuxSim.js\nSimulateur Debian\nsystem prompt pédago"]
+            ADSIM["adSim.js\nSimulateur corp.local\nCVE-2021-41773\nkali/shell/root/mysql/winrm"]
+            ASST["assistant.js\nMENTOR context-aware\nbuildAssistantContext\nhistorique conversation"]
+            CE["challenges.js\ncommandes pentest\nflags · scoring"]
+        end
+
+        SRV --> DB
+        SRV --> CLIENT
+        CLIENT --> LSIM & ADSIM & ASST & CE
+    end
+
+    subgraph APIS ["🤖  LLM APIs"]
+        GEM["Google Gemini\ngemini-2.5-flash\nclés 1-4 (rotation)"]
+        GROQ["Groq\nllama-3.3-70b\n(secours final)"]
+    end
+
+    APP --> SCREENS & GAME & ROOMS
+    APP --> MAP
+    ROOMS --> LEVELS
+    LEVELS --> UTILS
+    UTILS -->|"commandes simples\n(0 API)"| ROOMS
+    UTILS -->|"commandes complexes"| SRV
+    BOT -->|"POST /api/assistant + JWT"| SRV
+    TRM -->|"POST /api/command\nPOST /api/linux-sim\nPOST /api/ad-sim + JWT"| SRV
+    CLIENT -->|"primaire (quota 429 → clé suivante)"| GEM
+    CLIENT -->|"secours toutes clés épuisées"| GROQ
+
+    style FE fill:#001208,stroke:#00cc66,color:#00ff88
+    style BE fill:#000818,stroke:#2255cc,color:#6699ff
+    style APIS fill:#180020,stroke:#9933cc,color:#cc88ff
+    style LLM_LAYER fill:#000a20,stroke:#1a3a6a,color:#4488aa
+    style UTILS fill:#001a06,stroke:#006633,color:#00aa44
+    style LEVELS fill:#001a06,stroke:#006633,color:#00aa44
 ```
-Les câbles réseau s'illuminent sur la carte. ORACLE guide vers les premières cibles.
-
-#### B. Attaquer le Web Server (FACILE)
-
-Marche jusqu'au Web Server (bas-gauche), puis dans le terminal :
-```
-cd 192.168.1.10
-recon
-nmap -sV 192.168.1.10
-nikto -h 192.168.1.10
-dirb http://192.168.1.10
-sqlmap -u http://192.168.1.10/login.php
-cat /flag.txt
-```
-Flag : `CQ{w3b_s3rv3r_pwn3d}` — le bâtiment passe au vert sur la carte.
-
-#### C. Attaquer le Mail Server (MOYEN)
-
-Marche jusqu'au Mail Server (bas-droite) :
-```
-cd 192.168.1.20
-recon
-nmap -sV 192.168.1.20
-hydra -l admin -P /usr/share/wordlists/rockyou.txt 192.168.1.20 smtp
-nc 192.168.1.20 25
-cat /flag.txt
-```
-Flag : `CQ{m41l_s3rv3r_0wn3d}` — le DB Server se déverrouille sur la carte.
-
-#### D. Attaquer le DB Server (MOYEN)
-
-Marche vers le centre (les couloirs de bypass autour du DB Server permettent de le contourner) :
-```
-cd 192.168.1.30
-recon
-nmap -sV 192.168.1.30
-sqlmap --dump
-find / -perm -u=s 2>/dev/null
-sudo python3 -c "import os; os.system('/bin/bash')"
-cat /flag.txt
-```
-Flag : `CQ{db_dump_g0t}` — le Domain Controller se déverrouille et la barrière Firewall apparaît.
-
-#### E. Attaquer le Domain Controller (DIFFICILE — boss)
-
-Traverse la zone Firewall (bas-centre) :
-```
-cd 192.168.1.100
-recon
-nmap -sV 192.168.1.100
-searchsploit ms17-010
-nc 192.168.1.100 445
-whoami
-sudo -l
-cat /flag.txt
-```
-Flag : `CQ{d0m41n_4dm1n_pwn3d}` — écran de victoire avec Matrix rain.
-
-### Étape 5 — Autres commandes utiles
-
-| Commande | Description |
-|----------|-------------|
-| `hint` | Indice sur la phase actuelle |
-| `help` | Liste toutes les commandes disponibles |
-| `ls` | Lister les machines du réseau |
-| `whoami` | Afficher ton identité et contexte |
-| `exit` | Quitter la machine en cours |
-| `scores` | Afficher le tableau des scores |
-| `clear` / `Ctrl+L` | Effacer le terminal |
-| `Ctrl+C` | Copier la sélection / annuler la commande |
-| `Tab` | Autocomplétion des commandes |
-
-### Étape 6 — Vérifier les écrans spéciaux
-
-| Condition | Écran |
-|-----------|-------|
-| Timer atteint 0 (6 min écoulées) | Game Over glitch rouge |
-| 4 flags récupérés | Victoire Matrix rain vert |
-| ORACLE à 2 min restantes | Message d'alerte dans le terminal |
-| ORACLE à 1 min restante | Message critique dans le terminal |
 
 ---
 
 ## Diagramme de séquence
 
-Flux complet d'une session de jeu, du lancement au flag final.
+Flux complet : authentification → exploration → commande → réponse LLM → validation niveau.
 
 ```mermaid
 sequenceDiagram
-    actor P as Joueur
-    participant UI as App.jsx (React)
-    participant GM as GameMap (Canvas)
-    participant T  as Terminal (xterm.js)
-    participant B  as Backend (Express)
-    participant CE as commandEngine.js
+    actor P as 🧑‍💻 Joueur
+    participant FE  as Frontend (React)
+    participant VFS as VFS Local
+    participant BE  as Backend (Express)
+    participant DB  as SQLite
+    participant LLM as LLM Client
 
-    P->>UI: Sélectionne personnage + alias
-    UI->>UI: screen = 'intro'
-    UI-->>P: IntroScreen — briefing cinématique
-    P->>UI: Clique "Commencer l'infiltration"
-    UI->>UI: screen = 'game' · timer 360 s démarre
+    note over LLM: Gemini clé1→2→3→4 → Groq
 
-    rect rgb(0, 30, 0)
-        note over P,GM: Déplacement GHOST sur la carte
-        loop Touche flèche pressée
-            P->>GM: ↑ ↓ ← → (window keydown)
-            GM->>GM: Vérifie collision NETWORK_MAP
-            GM->>GM: ghostTileRef ← nouvelle position
-            GM->>GM: Détection proximité machine (Manhattan ≤ 1)
-            GM-->>T: ORACLE › "cd {ip}" si nouvelle machine proche
-            GM-->>P: Bulle interaction au-dessus de GHOST
+    P->>FE: Register / Login
+    FE->>BE: POST /api/auth/login
+    BE->>DB: vérif hash bcrypt
+    DB-->>BE: user row
+    BE-->>FE: JWT token (24h)
+    FE-->>P: Écran sélection personnage
+
+    P->>FE: Choisit personnage + alias
+    FE-->>P: Cinématique intro
+    P->>FE: "Commencer l'infiltration"
+    FE-->>P: Carte NEXUS Corp + terminal
+
+    rect rgb(0, 30, 10)
+        note over P,FE: Déplacement sur la carte
+        P->>FE: Touches ↑↓←→
+        FE->>FE: Collision check NETWORK_MAP
+        FE-->>P: GHOST se déplace, bulle interaction
+        P->>FE: Approche machine → Entre dans la room
+    end
+
+    rect rgb(0, 10, 40)
+        note over P,LLM: Commande dans le terminal
+        P->>FE: tape "ls" (commande simple)
+        FE->>VFS: runLocal("ls", envState)
+        VFS-->>FE: output instantané (0 appel API)
+        FE-->>P: Documents  Downloads  config.php
+
+        P->>FE: tape "nmap 192.168.1.0/24"
+        FE->>BE: POST /api/ad-sim {cmd, levelN, prompt} + JWT
+        BE->>BE: vérifie JWT
+        BE->>LLM: chat({messages, fallbackOnEmpty:true})
+
+        alt Gemini clé 1 disponible
+            LLM->>LLM: callOnce(GEMINI_URL, key1, ...)
+            LLM-->>BE: {ok:true, content, provider:"gemini"}
+        else Quota 429 clé 1
+            LLM->>LLM: callOnce(GEMINI_URL, key2, ...)
+            LLM-->>BE: {ok:true, content, keyIndex:1}
+        else Toutes clés Gemini épuisées
+            LLM->>LLM: callGroq(opts)
+            LLM-->>BE: {ok:true, content, provider:"groq"}
         end
+
+        BE-->>FE: {output: [...lines]}
+        FE-->>P: sortie terminal colorée
     end
 
-    rect rgb(0, 0, 40)
-        note over P,CE: Commandes pentest dans le terminal
-        loop Commande soumise
-            P->>T: tape commande (ex : nmap -sV 192.168.1.10)
-            T->>B: POST /api/command {command, sessionId}
-            B->>CE: route vers handler
-            CE->>CE: vérifie phase · met à jour gameState
-            CE-->>B: {output, newState, effect, pedagogie}
-            B-->>T: réponse JSON
-            T-->>P: affiche output (ANSI colors)
-            UI->>GM: gameState mis à jour → redessine carte
-            GM-->>P: bâtiment change couleur · câble devient vert
-        end
+    rect rgb(30, 0, 0)
+        note over P,LLM: Question MENTOR
+        P->>FE: clique 🎓 → pose une question
+        FE->>BE: POST /api/assistant {question, context, history} + JWT
+        BE->>LLM: askAssistant(question, context)
+        LLM-->>BE: réponse pédagogique
+        BE-->>FE: {answer}
+        FE-->>P: bulle MENTOR avec explication
     end
 
-    alt Timer ORACLE — 2 min restantes
-        UI-->>T: ORACLE › "Accélère, ils remontent ta connexion"
-    end
-    alt Timer ORACLE — 1 min restante
-        UI-->>T: ORACLE › "⚠ 60 secondes. Ils arrivent."
-    end
-
-    alt 4 flags capturés (gameWon = true)
-        UI->>UI: screen = 'victory'
-        UI-->>P: Écran Victory — Matrix rain + score final
-    else Timer = 0
-        UI->>UI: screen = 'gameover'
-        UI-->>P: Écran Game Over — glitch rouge
+    alt Objectif de niveau validé
+        FE->>BE: PATCH /api/state {levelN, done:true} + JWT
+        BE->>DB: upsert level_progress
+        DB-->>BE: ok
+        BE-->>FE: {xpGained, newLevel}
+        FE-->>P: Toast "Niveau validé ✅" + bouton Suivant
     end
 ```
 
 ---
 
-## Diagramme d'architecture
-
-Relations entre les composants frontend, le backend, et les flux de données.
-
-```mermaid
-graph TB
-    subgraph FE["🖥  Frontend — React + Vite  (port 5173)"]
-        direction TB
-
-        App["App.jsx\n── machine à états ──\nselect › intro › game › fin\n── refs partagées ──\nwriteToTermRef · ghostTileRef\nnearbyMachineRef · timerRef"]
-
-        subgraph Screens["Écrans"]
-            CS["CharacterSelect.jsx\nGHOST / PHANTOM / VIPER\nalias + bouton lancer"]
-            IS["IntroScreen.jsx\nbriefing cinématique"]
-            GO["GameOver.jsx\nglitch rouge"]
-            VIC["Victory.jsx\nMatrix rain"]
-        end
-
-        subgraph Game["Jeu principal"]
-            HUD["HUD.jsx\ntimer · identité\nprogression machines"]
-            GM["GameMap.jsx\nCanvas 2D 960×672\ntilemap · bâtiments\nGHOST lerp · câbles\nbulle interaction"]
-            TRM["Terminal.jsx\nxterm.js v5\ncommandes pentest\nautocomplétion · historique"]
-            MV["MachineView.jsx\nphases pentest\nétat machine active"]
-            PP["PedaPanel.jsx\nguide contextuel\nindices par phase"]
-        end
-
-        MAP["map.js\nNETWORK_MAP 20×14\nGHOST_SPAWN\nMACHINE_POSITIONS\nCABLE_LINKS"]
-    end
-
-    subgraph BE["⚙  Backend — Node.js + Express  (port 3001)"]
-        direction TB
-        SRV["server.js\nPOST /api/command\nGET  /api/state"]
-        CE["commandEngine.js\nnmap · cd · recon · sqlmap\nhydra · cat /flag.txt\nphases · flags · ORACLE\nmessages ANSI colorés"]
-        GS["gameState.js\nMap sessionId → state\npwnedMachines · phase\nxp · level · gameWon"]
-    end
-
-    App -->|"affiche selon screen"| CS & IS & GO & VIC
-    App -->|"affiche"| HUD & GM & TRM & MV & PP
-    GM -->|"importe"| MAP
-    App -->|"importe GHOST_SPAWN\nMACHINE_POSITIONS"| MAP
-
-    App -->|"ghostTileRef\nnearbyMachineRef"| GM
-    App -->|"onWriteRef → ORACLE alerts\nonCommand → POST"| TRM
-    TRM -->|"POST /api/command\n{command, sessionId}"| SRV
-    SRV --> CE
-    CE <-->|"lecture / écriture"| GS
-    SRV -->|"{output, newState,\neffect, pedagogie}"| TRM
-    TRM -->|"newState"| App
-    App -->|"gameState"| GM & HUD & MV & PP
-
-    style FE fill:#001a00,stroke:#00ff41,color:#00ff41
-    style BE fill:#00001a,stroke:#0066ff,color:#88aaff
-    style APP fill:#002200
-    style MAP fill:#001122
-```
-
----
-
-## Architecture du jeu
+## Structure du projet
 
 ```
-cyberquest/
+CyberquestProject/
 ├── backend/
-│   ├── engine/
-│   │   ├── commandEngine.js   # Moteur de jeu : commandes, scénarios, flags
-│   │   └── gameState.js       # Sessions en mémoire (Map par sessionId)
-│   └── server.js              # API Express — POST /api/command, GET /api/state
-└── frontend/
-    └── src/
-        ├── map.js              # Tilemap 20×14 : grille, positions machines, câbles
-        ├── components/
-        │   ├── CharacterSelect.jsx  # Sélection GHOST/PHANTOM/VIPER
-        │   ├── IntroScreen.jsx      # Cinématique de briefing
-        │   ├── GameMap.jsx          # Carte top-down Canvas (bâtiments, GHOST, câbles)
-        │   ├── Terminal.jsx         # Terminal xterm.js (commandes pentest)
-        │   ├── HUD.jsx              # Timer, identité, progression
-        │   ├── MachineView.jsx      # Vue phases pentest par machine
-        │   ├── PedaPanel.jsx        # Guide pédagogique contextuel
-        │   ├── GameOver.jsx         # Écran de fin (temps écoulé)
-        │   └── Victory.jsx          # Écran de victoire (Matrix rain)
-        ├── sounds.js           # Sons synthétisés (Web Audio API, sans fichiers)
-        ├── styles/main.css     # Animations, CRT scanlines, thème cyberpunk
-        └── App.jsx             # Machine à états : select → intro → game → fin
+│   ├── llm/
+│   │   ├── client.js          # Client LLM unifié — rotation 4 clés Gemini + Groq fallback
+│   │   ├── linuxSim.js        # Simulateur terminal Linux pédagogique
+│   │   ├── adSim.js           # Simulateur pentest AD (corp.local, CVE-2021-41773)
+│   │   ├── assistant.js       # MENTOR — réponses contextuelles room/niveau
+│   │   └── challenges.js      # Commandes pentest, flags, scoring
+│   ├── server.js              # API Express + JWT auth middleware
+│   ├── .env                   # Clés API (gitignored — ne jamais commit)
+│   └── cyberquest.db          # SQLite (gitignored)
+└── frontend/src/
+    ├── App.jsx                # Machine à états principale + buildAssistantContext()
+    ├── map.js                 # Tilemap 20×14, positions machines
+    ├── components/
+    │   ├── GameMap.jsx            # Carte Canvas top-down
+    │   ├── LevelTerminal.jsx      # Terminal partagé toutes rooms
+    │   ├── AssistantBot.jsx       # Widget MENTOR flottant 🎓
+    │   ├── ADLevelView.jsx        # Room Active Directory
+    │   ├── LinuxLevelView.jsx     # Room Linux
+    │   ├── LinuxLevelMap.jsx      # Sélecteur 8 niveaux Linux
+    │   └── ...                    # Web, PI, AI Core views
+    ├── levels/
+    │   ├── adLevels.js            # Chaîne d'attaque AD scriptée (6 étapes)
+    │   ├── linuxLevels.js         # 8 niveaux Linux
+    │   ├── webLevels.js           # 6 niveaux DVWA
+    │   └── piLevels.js            # Niveaux Prompt Injection
+    └── utils/
+        ├── linuxSimulator.js      # Moteur VFS local (ls/cd/pwd/mkdir/rm… sans API)
+        └── adSimulator.js         # AD_VFS kali/shell/root + fallback LLM
 ```
 
 ---
 
 ## Technologies
 
-| Côté | Stack |
-|------|-------|
-| Frontend | React 18, Vite, HTML Canvas 2D, xterm.js v5 |
-| Backend | Node.js 18, Express |
-| Audio | Web Audio API (aucun fichier audio) |
-| État jeu | Sessions en mémoire côté backend (Map), refs côté frontend |
-| Graphismes | Canvas `requestAnimationFrame` + lerp pour les animations |
+| Couche | Stack |
+|--------|-------|
+| Frontend | React 18, Vite 5, HTML Canvas 2D |
+| Backend | Node.js 18, Express, better-sqlite3 |
+| Auth | JWT (jsonwebtoken), bcrypt |
+| LLM | Google Gemini 2.5 Flash (×4 clés) + Groq llama-3.3-70b (fallback) |
+| VFS | Moteur JavaScript local — 0 appel API pour ls/cd/pwd/mkdir/rm |
+| État jeu | SQLite côté backend, useState/envState côté frontend |
+
+---
+
+## Gestion des quotas LLM
+
+```
+Commande reçue
+    │
+    ├─ ls / cd / pwd / mkdir / rm / touch → VFS local (instantané, 0 API)
+    │
+    └─ Commande complexe (nmap, cat, crackmapexec…)
+            │
+            ├─ Gemini clé 1  ──429──▶  Gemini clé 2  ──429──▶  Gemini clé 3  ──429──▶  Gemini clé 4
+            │                                                                                  │
+            └──────────────────────────────── 429 ────────────────────────────────────▶  Groq (fallback)
+```
+
+Chaque clé Gemini offre **10 req/min · 500 req/jour** → capacité totale : **40 req/min · 2 000 req/jour**.
+
+---
+
+## Chaîne d'attaque Active Directory
+
+```
+Kali (10.0.0.1)
+    │
+    ├─ 1. nmap 192.168.1.0/24          → découverte hôtes actifs
+    ├─ 2. dnsrecon / nikto             → énumération AD, CVE-2021-41773 confirmé
+    ├─ 3. CVE-2021-41773 RCE           → shell www-data@192.168.1.10
+    ├─ 4. sudo python3 privesc         → root + /var/www/html/config.php (db_user:Str0ngP@ss)
+    ├─ 5. mysql -h 192.168.1.30        → dump table credentials → hash NTLM Administrator
+    └─ 6. evil-winrm Pass-the-Hash     → DC (192.168.1.100) → NTDS.dit → Golden Ticket
+```
 
 ---
 
@@ -330,5 +375,5 @@ cyberquest/
 
 - **BouazzaZayd** — Moteur backend & logique pentest
 - **isselmou** — Carte interactive & terminal
-- **JamaiAli** — Interface, intégration & UX
-- **Aziz Baoueb** — Co-conception initiale & Architecture standalone (branche `proof-of-concept`)
+- **JamaiAli** — Interface, intégration, LLM & UX
+- **Aziz Baoueb** — Co-conception initiale & Architecture standalone (`proof-of-concept`)
