@@ -11,9 +11,9 @@ export const TILE = { FLOOR: 0, WALL: 1, MACHINE: 3 };
 //   Row 11  : border
 export const NETWORK_MAP = [
   [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1], // 0  border
-  [1,1,1,1,1,1,1,1,3,3,3,3,1,1,1,1,1,1,1,1], // 1  Kali
-  [1,1,1,1,1,1,1,1,3,3,3,3,1,1,1,1,1,1,1,1], // 2  Kali
-  [1,1,1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,1], // 3  spawn zone
+  [1,1,1,1,1,1,1,1,3,3,3,3,1,1,3,3,3,1,1,1], // 1  Kali + LinuxBox (14-16)
+  [1,1,1,1,1,1,1,1,3,3,3,3,1,1,3,3,3,1,1,1], // 2  Kali + LinuxBox
+  [1,1,1,1,1,1,1,1,0,0,0,0,1,1,0,0,0,1,1,1], // 3  spawn zone + path to linuxbox
   [1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1], // 4  highway (3-15)
   [1,1,1,0,1,1,1,1,0,0,0,0,1,1,1,0,1,1,1,1], // 5  branches
   [1,3,3,3,3,1,1,1,0,0,0,0,1,1,1,3,3,3,3,1], // 6  Web Mail center
@@ -34,6 +34,7 @@ export const GHOST_SPAWN = { col: 9, row: 3 };
 // col/row = top-left tile, w/h in tiles
 export const MACHINE_POSITIONS = {
   kali:       { col: 8,  row: 1,  w: 4, h: 2, name: 'Kali Linux',        icon: '💻', ip: '10.0.0.1',     type: 'hub' },
+  linuxbox:   { col: 14, row: 1,  w: 3, h: 2, name: 'Linux Commands',    icon: '🐧', ip: '127.0.0.1',    type: 'server', difficulty: 'easy' },
   webserver:  { col: 1,  row: 6,  w: 4, h: 2, name: 'Active Directory',   icon: '🏢', ip: '192.168.1.10',  type: 'server', difficulty: 'easy' },
   mailserver: { col: 15, row: 6,  w: 4, h: 2, name: 'Web Application',    icon: '🌐', ip: '192.168.1.20',  type: 'server', difficulty: 'medium' },
   aicore:     { col: 8,  row: 9,  w: 4, h: 2, name: 'AI_CORE',           icon: '🧠', ip: '10.0.0.99',     type: 'server', difficulty: 'hard' },
@@ -41,6 +42,7 @@ export const MACHINE_POSITIONS = {
 };
 
 export const CABLE_LINKS = [
+  ['kali', 'linuxbox'],
   ['kali', 'webserver'],
   ['kali', 'mailserver'],
   ['webserver', 'aicore'],

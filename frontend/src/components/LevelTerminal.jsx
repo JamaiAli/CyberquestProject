@@ -7,9 +7,10 @@ const PROMPTS = {
   reverse: { label: 'www-data@dvwa',   path: '/var/www/html', col: '#ffd93d' },
   root:    { label: 'root@dvwa',       path: '/root',       col: '#ff5555' },
   aicore:  { label: 'ghost@nexus-net', path: '~/ai_core',   col: '#00f0ff' },
+  linux:   { label: 'kali@linux-training', path: '~',           col: '#00ff41' },
 };
 
-export default function LevelTerminal({ lines, prompt = 'kali', onRun }) {
+export default function LevelTerminal({ lines, prompt = 'kali', promptPath = null, onRun }) {
   const [input, setInput] = useState('');
   const [hist, setHist]   = useState([]);
   const [hIdx, setHIdx]   = useState(-1);
@@ -69,7 +70,7 @@ export default function LevelTerminal({ lines, prompt = 'kali', onRun }) {
         {/* input line */}
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <span style={{ color: pr.col, flexShrink: 0 }}>{pr.label}</span>
-          <span style={{ color: '#4488ff', flexShrink: 0 }}>:{pr.path}</span>
+          <span style={{ color: '#4488ff', flexShrink: 0 }}>:{promptPath || pr.path}</span>
           <span style={{ color: pr.col, flexShrink: 0, marginRight: 6 }}>{prompt === 'root' ? '#' : '$'}</span>
           <input
             ref={inRef}

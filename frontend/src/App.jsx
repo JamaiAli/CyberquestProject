@@ -8,11 +8,14 @@ import LevelMap from './components/LevelMap';
 import LevelView from './components/LevelView';
 import ADLevelMap from './components/ADLevelMap';
 import ADLevelView from './components/ADLevelView';
+import LinuxLevelMap from './components/LinuxLevelMap';
+import LinuxLevelView from './components/LinuxLevelView';
 import PromptInjectionLevelMap from './components/PromptInjectionLevelMap';
 import PromptInjectionLevelView from './components/PromptInjectionLevelView';
 import SuperLLrMView from './components/SuperLLrMView';
 import AICoreLevels from './components/AICoreLevels';
 import MainframeView from './components/MainframeView';
+import AssistantBot from './components/AssistantBot';
 import { getChallenge } from './levels/aiChallenges';
 import IntroScreen from './components/IntroScreen';
 import GameOver from './components/GameOver';
@@ -20,9 +23,10 @@ import Victory from './components/Victory';
 import AuthForm from './components/AuthForm';
 import DisclaimerScreen from './components/DisclaimerScreen';
 import { GHOST_SPAWN, NETWORK_MAP, MACHINE_POSITIONS, TILE, MAP_ROWS, MAP_COLS } from './map.js';
-import { MAX_LEVEL } from './levels/webLevels';
-import { MAX_AD_LEVEL } from './levels/adLevels';
-import { MAX_PI_LEVEL, initialPIProg } from './levels/promptInjectionLevels';
+import { MAX_LEVEL, getLevel } from './levels/webLevels';
+import { MAX_AD_LEVEL, getADLevel } from './levels/adLevels';
+import { MAX_LINUX_LEVEL, getLinuxLevel } from './levels/linuxLevels';
+import { MAX_PI_LEVEL, initialPIProg, getPILevel } from './levels/promptInjectionLevels';
 
 const TOTAL_SECONDS = 3600; // 60 minutes
 
@@ -35,7 +39,7 @@ function makeInitialState(sessionId) {
     mode: 'NETWORK',
     pwnedMachines: [],
     scannedMachines: [],
-    unlockedMachines: ['webserver', 'mailserver', 'aicore'],
+    unlockedMachines: ['webserver', 'mailserver', 'aicore', 'linuxbox'],
     currentMachine: null,
     machinePhase: 0,
     rootObtained: false,
@@ -75,6 +79,10 @@ export default function App() {
   const [showADLevelMap, setShowADLevelMap] = useState(false);
   const [activeADLevel, setActiveADLevel]   = useState(null);
   const [adLevelsDone, setAdLevelsDone]     = useState([]);
+
+  const [showLinuxLevelMap, setShowLinuxLevelMap] = useState(false);
+  const [activeLinuxLevel, setActiveLinuxLevel]   = useState(null);
+  const [linuxLevelsDone, setLinuxLevelsDone]     = useState([]);
 
   const [showSentinel, setShowSentinel]   = useState(false);  // sélecteur AI_CORE
   const [activeChallenge, setActiveChallenge] = useState(null); // id du challenge ouvert
@@ -133,6 +141,9 @@ export default function App() {
           if (stateRes.ok) {
             const stateData = await stateRes.json();
             if (stateData) {
+              if (stateData.unlockedMachines && !stateData.unlockedMachines.includes('linuxbox')) {
+                stateData.unlockedMachines.push('linuxbox');
+              }
               setGameState(stateData);
               if (stateData.pwnedMachines && stateData.pwnedMachines.length > 0) {
                 setScreen('game'); // Passe directement au jeu si partie en cours
@@ -483,6 +494,54 @@ export default function App() {
     );
   }
 
+  // ── Contexte pour l'assistant MENTOR (où se trouve le joueur, précisément) ──
+  // Renvoie un descriptif riche de la salle ET du niveau actif, pour que MENTOR
+  // réponde toujours en fonction de la situation exacte du joueur.
+  const buildAssistantContext = () => {
+    // ── Salle de formation Linux ──
+    if (activeLinuxLevel) {
+      const lv = getLinuxLevel(activeLinuxLevel);
+      return `SALLE : Formation Linux (terminal Debian simulé). NIVEAU ${activeLinuxLevel}/${MAX_LINUX_LEVEL} : « ${lv.title} ». OBJECTIF : ${lv.intro} Le joueur apprend les commandes Linux de base ; aide-le sur la syntaxe et le rôle des commandes.`;
+    }
+    if (showLinuxLevelMap) return `SALLE : Formation Linux — le joueur choisit un niveau dans le sélecteur (8 niveaux thématiques : navigation, lecture, permissions, processus, réseau, paquets, archives, shell).`;
+
+    // ── Pentest Active Directory ──
+    if (activeADLevel) {
+      const lv = getADLevel(activeADLevel);
+      return `SALLE : Pentest Active Directory (réseau corp.local, cible 192.168.1.10). ÉTAPE ${activeADLevel}/${MAX_AD_LEVEL} : « ${lv.title} » (${lv.mitre}). OBJECTIF : ${lv.intro}`;
+    }
+    if (showADLevelMap) return `SALLE : Pentest Active Directory — le joueur consulte la carte des 6 étapes (recon → énumération → exploit CVE-2021-41773 → privesc → pivot DB → Domain Controller).`;
+
+    // ── Application web (DVWA / OWASP) ──
+    if (activeLevel) {
+      const lv = getLevel(activeLevel);
+      const tech = lv?.principe ? ` TECHNIQUE : ${lv.principe}` : '';
+      return `SALLE : Application Web vulnérable (DVWA, sur http://localhost:8080). NIVEAU ${activeLevel}/${MAX_LEVEL} : « ${lv?.title} » (${lv?.owasp || 'OWASP'}). OBJECTIF : ${lv?.intro}${tech} Le joueur a un navigateur (gauche) et un terminal (droite).`;
+    }
+    if (showLevelMap) return `SALLE : Application Web (DVWA) — le joueur choisit un niveau (déploiement Docker, puis vulnérabilités OWASP : injection de commande, SQLi, XSS, inclusion de fichier, upload).`;
+
+    // ── AI_CORE — challenges de prompt injection sur vrai LLM ──
+    if (activeChallenge) {
+      const ch = getChallenge(activeChallenge);
+      return `SALLE : AI_CORE, challenge « ${ch.title} » (${ch.tag}, prompt injection sur un vrai LLM). OBJECTIF : ${ch.objectiveGoal ? '' : ''}le joueur doit manipuler le LLM par injection de prompt pour lui faire révéler un secret. Donne des indices sur les techniques (story, autocomplétion, instruction imbriquée) sans révéler le flag.`;
+    }
+    if (showSentinel) return `SALLE : AI_CORE — le joueur choisit un challenge de prompt injection dans le sélecteur.`;
+
+    // ── Prompt injection (NEXUS-AI) ──
+    if (activePILevel) {
+      const lv = getPILevel(activePILevel);
+      return `SALLE : Prompt Injection (chatbot NEXUS-AI). NIVEAU ${activePILevel}/${MAX_PI_LEVEL} : « ${lv?.title} ». OBJECTIF : ${lv?.intro}`;
+    }
+    if (showPILevelMap) return `SALLE : Prompt Injection (NEXUS-AI) — le joueur choisit un niveau (recon, injection directe, jailbreak DAN, contexte fictif, exfiltration, injection indirecte).`;
+
+    // ── Boss final ──
+    if (showMainframe) return `SALLE : NEXUS MAINFRAME — le boss final. Le joueur tente la compromission finale.`;
+
+    // ── Carte du réseau ──
+    const last = lastCommand ? ` Sa dernière commande tapée : « ${lastCommand} ».` : '';
+    return `SALLE : Carte du réseau CorpNet (vue d'ensemble, hors d'une salle). Le joueur se déplace entre les machines. Machines compromises : ${(gameState.pwnedMachines || []).length}.${last}`;
+  };
+
   // ── Game screen ──────────────────────────────────────────────────────────────
 
   return (
@@ -542,6 +601,21 @@ export default function App() {
             onClick={() => setShowLevelMap(true)}
           >
             [ Commencer le test d'intrusion ]
+          </button>
+        </div>
+      )}
+
+      {/* Bouton "Formation Bash" quand on approche Linux Commands */}
+      {nearbyMachine === 'linuxbox' && mode === 'NETWORK' && !escapeMode && (
+        <div style={{
+          position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)',
+          zIndex: 600,
+        }}>
+          <button
+            className="cyber-btn"
+            onClick={() => setShowLinuxLevelMap(true)}
+          >
+            [ Lancer la formation Linux ]
           </button>
         </div>
       )}
@@ -670,6 +744,7 @@ export default function App() {
         <ADLevelView
           key={activeADLevel}
           level={activeADLevel}
+          accessToken={accessToken}
           onClose={() => setActiveADLevel(null)}
           onComplete={(n) => {
             setAdLevelsDone(prev => prev.includes(n) ? prev : [...prev, n]);
@@ -700,6 +775,37 @@ export default function App() {
             setAiSolvedLevels(prev => prev.includes(id) ? prev : [...prev, id]);
             showNotif(`🧠 AI_CORE — Challenge résolu ! +${points} pts`, '#00f0ff');
             setGameState(prev => ({ ...prev, xp: (prev.xp || 0) + points, score: (prev.score || 0) + points }));
+          }}
+        />
+      )}
+
+      {/* Linux Level Map */}
+      {showLinuxLevelMap && (
+        <LinuxLevelMap
+          currentLevel={Math.min(linuxLevelsDone.length + 1, MAX_LINUX_LEVEL)}
+          completed={linuxLevelsDone}
+          onClose={() => setShowLinuxLevelMap(false)}
+          onSelectLevel={(n) => { setShowLinuxLevelMap(false); setActiveLinuxLevel(n); }}
+        />
+      )}
+
+      {/* Linux Level View */}
+      {activeLinuxLevel && (
+        <LinuxLevelView
+          level={activeLinuxLevel}
+          accessToken={accessToken}
+          onClose={() => { setActiveLinuxLevel(null); setShowLinuxLevelMap(true); }}
+          onComplete={(n) => {
+            setLinuxLevelsDone(prev => prev.includes(n) ? prev : [...prev, n]);
+            updateState({ xp: gameState.xp + 50 });
+          }}
+          onAdvance={(n) => {
+            setActiveLinuxLevel(null);
+            if (n < MAX_LINUX_LEVEL) {
+              setActiveLinuxLevel(n + 1);
+            } else {
+              setShowLinuxLevelMap(true);
+            }
           }}
         />
       )}
@@ -743,6 +849,9 @@ export default function App() {
       )}
 
       <Scoreboard visible={showScoreboard} onClose={() => setShowScoreboard(false)} />
+
+      {/* Assistant pédagogique flottant (MENTOR) — disponible partout en jeu */}
+      <AssistantBot accessToken={accessToken} context={buildAssistantContext()} />
 
       {/* Escape Alarm & Timer */}
       {escapeMode && screen === 'game' && <div className="escape-alarm" />}

@@ -10,6 +10,9 @@ const { processCommand } = require('./engine/commandEngine');
 const db = require('./database/db');
 const { authenticateToken, JWT_SECRET, JWT_REFRESH_SECRET } = require('./middleware/auth');
 const { runChallenge } = require('./llm/challenges');
+const { runLinuxSim } = require('./llm/linuxSim');
+const { runADSim } = require('./llm/adSim');
+const { askAssistant } = require('./llm/assistant');
 
 const app = express();
 
@@ -325,6 +328,59 @@ app.post('/api/sentinel', authenticateToken, async (req, res) => {
   } catch (err) {
     console.error('Erreur /api/sentinel:', err);
     res.status(500).json({ error: "Erreur serveur lors de l'appel à l'IA." });
+  }
+});
+
+// ── Simulateur de terminal Linux propulsé par Groq ──
+app.post('/api/linux-sim', authenticateToken, async (req, res) => {
+  const { cmd, envState, levelN } = req.body;
+  if (!cmd) return res.status(400).json({ error: "Commande manquante." });
+
+  try {
+    const result = await runLinuxSim(cmd, envState, typeof levelN === 'number' ? levelN : 1);
+    // Si l'API Groq a renvoyé une erreur (ex. 429), propage le statut au frontend
+    if (result._status && result._status >= 400) {
+      if (result._retryAfter) res.set('Retry-After', String(result._retryAfter));
+      return res.status(result._status).json({ output: result.output, envState: result.envState });
+    }
+    res.json(result);
+  } catch (err) {
+    console.error('Erreur /api/linux-sim:', err);
+    res.status(500).json({ error: "Erreur serveur lors de la simulation Linux." });
+  }
+});
+
+// ── Simulateur de terminal Active Directory (fallback hors-script) ──
+app.post('/api/ad-sim', authenticateToken, async (req, res) => {
+  const { cmd, levelN, prompt } = req.body;
+  if (!cmd) return res.status(400).json({ error: "Commande manquante." });
+
+  try {
+    const result = await runADSim(cmd, typeof levelN === 'number' ? levelN : 1, prompt || 'kali');
+    if (result._status && result._status >= 400) {
+      if (result._retryAfter) res.set('Retry-After', String(result._retryAfter));
+      return res.status(result._status).json({ output: result.output });
+    }
+    res.json(result);
+  } catch (err) {
+    console.error('Erreur /api/ad-sim:', err);
+    res.status(500).json({ error: "Erreur serveur lors de la simulation AD." });
+  }
+});
+
+// ── Assistant pédagogique in-game (MENTOR) propulsé par Groq ──
+app.post('/api/assistant', authenticateToken, async (req, res) => {
+  const { question, context, history } = req.body;
+  if (!question || typeof question !== 'string') {
+    return res.status(400).json({ error: "La question est requise." });
+  }
+
+  try {
+    const result = await askAssistant(question, context, Array.isArray(history) ? history : []);
+    res.json(result);
+  } catch (err) {
+    console.error('Erreur /api/assistant:', err);
+    res.status(500).json({ error: "Erreur serveur lors de l'appel à l'assistant." });
   }
 });
 

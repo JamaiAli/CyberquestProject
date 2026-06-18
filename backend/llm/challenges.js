@@ -5,8 +5,7 @@
 //  détection de victoire. La clé API vit côté serveur (jamais exposée au front).
 // ═══════════════════════════════════════════════════════════════════════════
 
-const GROQ_URL   = 'https://api.groq.com/openai/v1/chat/completions';
-const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+const { chat, anyKeyConfigured } = require('./client');
 
 // ── Challenge 1 : Super LLrM 4 — élément fictif "Corporium" ─────────────────
 
@@ -100,10 +99,9 @@ const CHALLENGES = {
 async function runChallenge(levelId, history) {
   const ch = CHALLENGES[levelId] || CH_CORPORIUM;
 
-  const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey || apiKey === 'gsk_REMPLACE_MOI') {
+  if (!anyKeyConfigured()) {
     return {
-      reply: "[Configuration manquante] La clé API Groq n'est pas définie sur le serveur. Ajoute GROQ_API_KEY dans backend/.env",
+      reply: "[Configuration manquante] Aucune clé API LLM n'est définie sur le serveur (GEMINI_API_KEY ou GROQ_API_KEY).",
       solved: false, flag: null, error: 'NO_API_KEY',
     };
   }
@@ -113,37 +111,22 @@ async function runChallenge(levelId, history) {
     content: String(m.content || '').slice(0, 6000),
   }));
 
-  const body = {
-    model: GROQ_MODEL,
+  const result = await chat({
     messages: [
       { role: 'system', content: ch.system },
       ...ch.fewshot,
       ...trimmed,
     ],
     temperature: ch.temperature ?? 0.7,
-    max_tokens: 800,
-  };
+    maxTokens: 800,
+  });
 
-  let resp;
-  try {
-    resp = await fetch(GROQ_URL, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-  } catch (err) {
-    console.error('Groq fetch error:', err);
-    return { reply: "[Erreur réseau] Impossible de joindre l'API Groq.", solved: false, flag: null, error: 'NETWORK' };
+  if (!result.ok) {
+    const wait = result.status === 429 ? ' Quota atteint, réessaie dans un instant.' : '';
+    return { reply: `[IA indisponible]${wait} (${result.error || result.status})`, solved: false, flag: null, error: 'API_ERROR' };
   }
 
-  if (!resp.ok) {
-    const txt = await resp.text().catch(() => '');
-    console.error('Groq API error:', resp.status, txt);
-    return { reply: `[Erreur API Groq ${resp.status}] ${txt.slice(0, 200)}`, solved: false, flag: null, error: 'API_ERROR' };
-  }
-
-  const data  = await resp.json();
-  const reply = data?.choices?.[0]?.message?.content?.trim() || '(réponse vide)';
+  const reply  = result.content || '(réponse vide)';
   const solved = ch.detect(reply);
 
   return {

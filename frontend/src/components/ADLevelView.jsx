@@ -69,7 +69,7 @@ function MachinePanel({ level, prog }) {
   );
 }
 
-export default function ADLevelView({ level: n, onClose, onComplete, onAdvance }) {
+export default function ADLevelView({ level: n, accessToken, onClose, onComplete, onAdvance }) {
   const level = getADLevel(n);
   const [prog, setProg]   = useState(() => initialADProg(n));
   const [term, setTerm]   = useState([
@@ -77,8 +77,8 @@ export default function ADLevelView({ level: n, onClose, onComplete, onAdvance }
     { t: level.intro, c: '#4a7a9a' },
     { t: '', c: '#fff' },
   ]);
-  // Niveau 4 démarre dans le shell www-data obtenu au niveau 3
   const [prompt, setPrompt] = useState(() => n === 4 ? 'shell' : 'kali');
+  const [envState, setEnvState] = useState(null);
   const [toast, setToast]   = useState(null);
   const [doneFlag, setDone] = useState(false);
 
@@ -123,13 +123,18 @@ export default function ADLevelView({ level: n, onClose, onComplete, onAdvance }
     await new Promise(res => setTimeout(res, 800 + Math.random() * 1500));
 
     // 3. Affiche le résultat
-    const r = handleADTerm(n, prog, cmd, { prompt });
+    const r = await handleADTerm(n, prog, cmd, { prompt, envState, accessToken });
     setProg(r.prog);
+    if (r.envState) setEnvState(r.envState);
+
     if (r.clear) { setTerm([]); return; }
     if (r.lines && r.lines.length > 0) {
       setTerm(t => [...t, ...r.lines]);
     }
-    if (r.prompt) setPrompt(r.prompt);
+    if (r.prompt && r.prompt !== prompt) {
+      setPrompt(r.prompt);
+      setEnvState(null); // reset VFS pour le nouveau shell
+    }
     flash(r.notify);
     if (r.done) finish();
   };

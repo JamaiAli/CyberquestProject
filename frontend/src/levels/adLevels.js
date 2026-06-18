@@ -4,6 +4,8 @@
 //  Pure fonctions — pas de React.
 // ═══════════════════════════════════════════════════════════════════════════
 
+import { handleADCommand } from '../utils/adSimulator';
+
 const c = (t, col) => ({ t, c: col });
 
 // ── Configuration des niveaux ─────────────────────────────────────────────
@@ -189,32 +191,38 @@ export function getADNextStep(n, prog) {
 
 // ── Handlers terminal ─────────────────────────────────────────────────────
 
-export function handleADTerm(n, prog, rawCmd, ctx = {}) {
-  const cmd   = rawCmd.trim();
+export async function handleADTerm(n, prog, rawCmd, ctx = {}) {
+  const cmd = rawCmd.trim();
   const lower = cmd.toLowerCase();
-  const pr    = ctx.prompt || 'kali';
+  const pr = ctx.prompt || 'kali';
 
-  const ok  = (lines, patch, notify = null, done = false, prompt = null) =>
+  const ok = (lines, patch, notify = null, done = false, prompt = null) =>
     ({ lines, prog: { ...prog, ...patch }, notify, done, prompt });
-  const noop = (lines) =>
-    ({ lines, prog, notify: null, done: false, prompt: null });
+  const noop = (lines, newEnv = null) =>
+    ({ lines, prog, notify: null, done: false, prompt: null, envState: newEnv });
 
   if (lower === 'clear') return { lines: [], prog, notify: null, done: false, clear: true };
 
+  // Le fallback LLM (hors-script) a besoin du niveau courant pour le contexte AD
+  const actx = { ...ctx, levelN: n };
+
   switch (n) {
-    case 1: return level1(cmd, lower, prog, ok, noop);
-    case 2: return level2(cmd, lower, prog, ok, noop);
-    case 3: return level3(cmd, lower, prog, ok, noop, pr);
-    case 4: return level4(cmd, lower, prog, ok, noop, pr);
-    case 5: return level5(cmd, lower, prog, ok, noop, pr);
-    case 6: return level6(cmd, lower, prog, ok, noop, pr);
-    default: return noop([c('Niveau inconnu.', '#ff5555')]);
+    case 1: return await level1(cmd, lower, prog, ok, noop, pr, actx);
+    case 2: return await level2(cmd, lower, prog, ok, noop, pr, actx);
+    case 3: return await level3(cmd, lower, prog, ok, noop, pr, actx);
+    case 4: return await level4(cmd, lower, prog, ok, noop, pr, actx);
+    case 5: return await level5(cmd, lower, prog, ok, noop, pr, actx);
+    case 6: return await level6(cmd, lower, prog, ok, noop, pr, actx);
+    default:
+      const sim = await handleADCommand(rawCmd, actx);
+      if (sim.handled) return { lines: sim.lines, prog, notify: null, done: false, envState: sim.envState };
+      return noop([c('Niveau inconnu.', '#ff5555')]);
   }
 }
 
 // ─── Level 1 — Recon réseau ───────────────────────────────────────────────
 
-function level1(cmd, lower, prog, ok, noop) {
+async function level1(cmd, lower, prog, ok, noop, pr, ctx) {
   const isNmap = lower.startsWith('nmap');
 
   if (isNmap && (lower.includes('/24') || lower.includes('0/24') || lower.includes('-sn'))) {
@@ -264,12 +272,15 @@ function level1(cmd, lower, prog, ok, noop) {
     ], { nmapNet: true, nmapSV: true }, '🔍 Services AD identifiés !');
   }
 
+  const sim = await handleADCommand(cmd, ctx);
+  if (sim.handled) return { lines: sim.lines, prog, notify: null, done: false, envState: sim.envState };
+
   return noop([c('Usage: nmap 192.168.1.0/24   ou   nmap -sV 192.168.1.10   ou   nmap -sC -sV -p- 192.168.1.10', '#4a6a7a')]);
 }
 
 // ─── Level 2 — Énumération AD ────────────────────────────────────────────
 
-function level2(cmd, lower, prog, ok, noop) {
+async function level2(cmd, lower, prog, ok, noop, pr, ctx) {
   if (lower.startsWith('dnsrecon')) {
     return ok([
       c('[*] Performing General Enumeration of Domain: corp.local', '#00aaff'),
@@ -317,12 +328,15 @@ function level2(cmd, lower, prog, ok, noop) {
       prog.dnsrecon && prog.nikto);
   }
 
+  const sim = await handleADCommand(cmd, ctx);
+  if (sim.handled) return { lines: sim.lines, prog, notify: null, done: false, envState: sim.envState };
+
   return noop([c('Commandes : dnsrecon | nikto | gobuster', '#4a6a7a')]);
 }
 
 // ─── Level 3 — Exploit CVE-2021-41773 ────────────────────────────────────
 
-function level3(cmd, lower, prog, ok, noop, pr) {
+async function level3(cmd, lower, prog, ok, noop, pr, ctx) {
   if (lower.startsWith('nc') && (lower.includes('-l') || lower.includes('lvnp') || lower.includes('lnvp'))) {
     const port = cmd.match(/\d{4,5}/)?.[0] || '4444';
     return ok([
@@ -354,12 +368,15 @@ function level3(cmd, lower, prog, ok, noop, pr) {
     ], { listener: true, shell: true }, '🔓 Reverse shell obtenu !', true, 'shell');
   }
 
+  const sim = await handleADCommand(cmd, ctx);
+  if (sim.handled) return { lines: sim.lines, prog, notify: null, done: false, envState: sim.envState };
+
   return noop([c('Commandes : nc -lvnp 4444   |   python3 cve-2021-41773.py 192.168.1.10 4444', '#4a6a7a')]);
 }
 
 // ─── Level 4 — Post-exploitation & PrivEsc ───────────────────────────────
 
-function level4(cmd, lower, prog, ok, noop, pr) {
+async function level4(cmd, lower, prog, ok, noop, pr, ctx) {
   if (lower === 'id' || lower === 'whoami') {
     const isRoot = pr === 'root';
     return ok([
@@ -422,12 +439,15 @@ function level4(cmd, lower, prog, ok, noop, pr) {
     ], {});
   }
 
+  const sim = await handleADCommand(cmd, ctx);
+  if (sim.handled) return { lines: sim.lines, prog, notify: null, done: false, envState: sim.envState };
+
   return noop([c('Commandes : id  |  sudo -l  |  sudo python3 -c ...  |  cat /var/www/html/config.php', '#4a6a7a')]);
 }
 
 // ─── Level 5 — Pivot DB Server ───────────────────────────────────────────
 
-function level5(cmd, lower, prog, ok, noop, pr) {
+async function level5(cmd, lower, prog, ok, noop, pr, ctx) {
   if (lower.startsWith('mysql') && lower.includes('192.168.1.30')) {
     const hasUser = lower.includes('db_user');
     const hasPass = lower.includes('str0ngp@ss');
@@ -482,12 +502,15 @@ function level5(cmd, lower, prog, ok, noop, pr) {
     }
   }
 
+  const sim = await handleADCommand(cmd, ctx);
+  if (sim.handled) return { lines: sim.lines, prog, notify: null, done: false, envState: sim.envState };
+
   return noop([c('Commandes : mysql -h 192.168.1.30 -u db_user -pStr0ngP@ss   puis   show databases;   puis   SELECT * FROM credentials;', '#4a6a7a')]);
 }
 
 // ─── Level 6 — Domain Controller ─────────────────────────────────────────
 
-function level6(cmd, lower, prog, ok, noop, pr) {
+async function level6(cmd, lower, prog, ok, noop, pr, ctx) {
   if (lower.startsWith('evil-winrm')) {
     const hasHash = lower.includes('-h') || lower.includes('aad3b') || lower.includes('5f4dcc');
     if (!hasHash) {
@@ -558,6 +581,9 @@ function level6(cmd, lower, prog, ok, noop, pr) {
       ], { winrm: true });
     }
   }
+
+  const sim = await handleADCommand(cmd, ctx);
+  if (sim.handled) return { lines: sim.lines, prog, notify: null, done: false, envState: sim.envState };
 
   return noop([c('Commandes : evil-winrm -i 192.168.1.100 -u Administrator -H <hash>  |  whoami /all  |  secretsdump.py ...', '#4a6a7a')]);
 }
