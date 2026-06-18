@@ -59,6 +59,9 @@ export const WEB_LEVELS = [
     owasp: 'A03:2021 — Injection · T1059.004',
     url: 'http://localhost:8080/vulnerabilities/exec/',
     intro: 'Le formulaire "ping" passe ton entrée directement au shell. Enchaîne tes propres commandes avec ; && ou |.',
+    vuln_desc: 'Une injection de commande OS survient lorsqu\'une application web transmet une saisie utilisateur directement au système d\'exploitation du serveur sans vérification.',
+    principe: 'Le formulaire transmet l\'adresse IP à shell_exec() sans filtrage. L\'ajout d\'un séparateur shell (; ou |) permet d\'exécuter des instructions avec les droits du serveur.',
+    contre_mesure: 'Valider strictement le format de l\'entrée (liste blanche IP, filter_var()) et échapper tout argument shell avec escapeshellarg().'
   },
   {
     n: 3, id: 'sqli',
@@ -66,6 +69,9 @@ export const WEB_LEVELS = [
     owasp: 'A03:2021 — Injection · T1190',
     url: 'http://localhost:8080/vulnerabilities/sqli/',
     intro: 'Le paramètre User ID n\'est pas filtré. Utilise UNION SELECT pour extraire les credentials, puis crack les hashes MD5.',
+    vuln_desc: 'L\'injection SQL consiste à insérer du code malveillant dans les requêtes envoyées à la base de données pour lire ou modifier des données.',
+    principe: 'L\'identifiant soumis est concaténé directement dans la requête SQL. L\'injection d\'une apostrophe \' permet de manipuler la requête via UNION SELECT.',
+    contre_mesure: 'Utilisation exclusive de requêtes préparées (PDO ou mysqli_stmt) séparant strictement la structure SQL des données utilisateur.'
   },
   {
     n: 4, id: 'blind',
@@ -73,6 +79,9 @@ export const WEB_LEVELS = [
     owasp: 'A03:2021 — Injection · T1190 / T1505.003',
     url: 'http://localhost:8080/vulnerabilities/sqli_blind/',
     intro: 'Injection aveugle (boolean & time-based). Automatise avec sqlmap, écris un webshell via INTO OUTFILE, obtiens un reverse shell, puis élève tes privilèges jusqu\'à root.',
+    vuln_desc: 'Variante de l\'injection SQL où le résultat n\'est pas affiché à l\'écran. L\'attaquant déduit l\'information en posant des centaines de questions fermées (vrai/faux).',
+    principe: 'L\'application affiche uniquement "User ID exists" ou "MISSING". L\'automatisation via sqlmap permet d\'extraire la base de données caractère par caractère.',
+    contre_mesure: 'Même remédiation que l\'injection classique (requêtes préparées PDO), combinée à un "rate limiting" pour ralentir l\'automatisation des requêtes.'
   },
   {
     n: 5, id: 'lfi',
@@ -80,6 +89,9 @@ export const WEB_LEVELS = [
     owasp: 'A01:2021 — Broken Access Control · T1083',
     url: 'http://localhost:8080/vulnerabilities/fi/',
     intro: 'Le paramètre ?page= est inclus sans validation. Remonte l\'arborescence (path traversal), lis le code source via le wrapper php://filter, puis enchaîne vers une RCE par log poisoning.',
+    vuln_desc: 'L\'inclusion de fichier local (LFI) permet à un attaquant de lire des fichiers présents sur votre serveur en manipulant les paramètres d\'URL.',
+    principe: 'Le paramètre ?page est passé directement à include(). En utilisant le "path traversal" (../), l\'attaquant navigue dans le système jusqu\'aux fichiers sensibles (/etc/passwd).',
+    contre_mesure: 'Validation via une liste blanche stricte des fichiers autorisés et vérification du chemin canonique avec realpath() pour bloquer les tentatives de traversal.'
   },
   {
     n: 6, id: 'upload',
@@ -87,6 +99,9 @@ export const WEB_LEVELS = [
     owasp: 'A04:2021 — Insecure Design · T1505.003',
     url: 'http://localhost:8080/vulnerabilities/upload/',
     intro: 'L\'upload n\'est pas filtré. Téléverse un webshell PHP, transforme-le en reverse shell interactif, stabilise le TTY, puis contourne un filtre d\'extension par double extension.',
+    vuln_desc: 'Le téléversement de fichier non sécurisé autorise un attaquant à déposer un programme malveillant (webshell) sur votre serveur.',
+    principe: 'Aucune vérification du type de fichier (ni MIME, ni extension). L\'attaquant dépose un script PHP qui est ensuite exécuté par le serveur web.',
+    contre_mesure: 'Validation du MIME réel via finfo, vérification d\'une liste blanche d\'extensions, stockage HORS du webroot et renommage aléatoire des fichiers.'
   },
   {
     n: 7, id: 'xss_r',
@@ -94,6 +109,9 @@ export const WEB_LEVELS = [
     owasp: 'A03:2021 — Injection · T1059',
     url: 'http://localhost:8080/vulnerabilities/xss_r/',
     intro: 'Le champ Name n\'est pas filtré. Injecte un script d\'alerte, vole le cookie de session, simule une exfiltration, puis contourne le filtre avec une balise alternative.',
+    vuln_desc: 'Le XSS réfléchi permet d\'injecter un script malveillant dans le navigateur d\'une victime via un lien piégé renvoyé immédiatement par le serveur.',
+    principe: 'Les données fournies dans l\'URL sont intégrées à la page sans encodage HTML. Le navigateur de la victime exécute le payload (ex: vol du cookie PHPSESSID).',
+    contre_mesure: 'Encodage systématique de toutes les sorties HTML avec htmlspecialchars() et mise en place d\'une politique Content Security Policy (CSP).'
   },
   {
     n: 8, id: 'xss_s',
@@ -101,6 +119,9 @@ export const WEB_LEVELS = [
     owasp: 'A03:2021 — Injection · T1059',
     url: 'http://localhost:8080/vulnerabilities/xss_s/',
     intro: 'Le guestbook sauvegarde ton script. Réalise une injection persistante, contourne la limite maxlength du nom, et crée un keylogger.',
+    vuln_desc: 'Le XSS stocké sauvegarde le script malveillant en base de données, l\'exécutant automatiquement chez chaque visiteur de la page compromise sans interaction.',
+    principe: 'Le message du livre d\'or est inséré puis affiché sans filtrage. L\'impact est massif car il affecte tous les utilisateurs de la plateforme (déploiement de keylogger).',
+    contre_mesure: 'Échappement obligatoire à l\'affichage (htmlspecialchars) des données de la BDD, combiné aux requêtes préparées PDO lors de l\'insertion.'
   },
   {
     n: 9, id: 'xss_d',
@@ -108,6 +129,9 @@ export const WEB_LEVELS = [
     owasp: 'A03:2021 — Injection · T1059',
     url: 'http://localhost:8080/vulnerabilities/xss_d/',
     intro: 'Le script côté client utilise l\'URL pour mettre à jour la page. Injecte via ?default= et via le fragment # (invisible pour le serveur).',
+    vuln_desc: 'Le XSS DOM-based se produit entièrement côté client, sans que le payload n\'interagisse avec le serveur (invisible pour la plupart des pares-feux web).',
+    principe: 'Le script de la page utilise document.location.href (la source) et l\'injecte directement dans le DOM via document.write() (le puits).',
+    contre_mesure: 'Bannir l\'utilisation de document.write() ou innerHTML. Utiliser textContent (qui n\'interprète pas le HTML) ou DOMPurify pour nettoyer les entrées dynamiques.'
   },
   {
     n: 10, id: 'csrf',
@@ -115,6 +139,9 @@ export const WEB_LEVELS = [
     owasp: 'A07:2021 — Identification & Auth Failures · T1600',
     url: 'http://localhost:8080/vulnerabilities/csrf/',
     intro: 'Ce formulaire permet de changer son mot de passe. Forge une requête malveillante (ex: balise img) qui forcera un utilisateur authentifié à modifier son mot de passe à son insu.',
+    vuln_desc: 'Le CSRF exploite la confiance qu\'une application accorde au navigateur de la victime en forçant l\'exécution d\'actions non désirées.',
+    principe: 'L\'application exécute un changement de mot de passe via une simple requête GET sans jeton de sécurité. Le navigateur de la victime y associe automatiquement ses cookies d\'authentification.',
+    contre_mesure: 'Mise en place du Synchronizer Token Pattern (jeton CSRF imprévisible), passage des actions sensibles en POST, et configuration SameSite=Strict sur les cookies.'
   },
   {
     n: 11, id: 'weak_id',
@@ -122,6 +149,9 @@ export const WEB_LEVELS = [
     owasp: 'A07:2021 — Identification Failures · T1110',
     url: 'http://localhost:8080/vulnerabilities/weak_id/',
     intro: 'Le cookie dvwaSession semble très prévisible. Analyse la séquence en générant quelques sessions, puis vole la session du prochain utilisateur (hijacking).',
+    vuln_desc: 'Générer des identifiants de session prévisibles permet à un attaquant de deviner et voler les sessions d\'autres utilisateurs.',
+    principe: 'Le cookie dvwaSession est un compteur incrémental banal (ex: 1, 2, 3). L\'attaquant incrémente le cookie manuellement pour usurper l\'identité de n\'importe quel visiteur.',
+    contre_mesure: 'Générer la session avec un générateur pseudo-aléatoire cryptographiquement sécurisé (CSPRNG, ex: random_bytes()) avec une entropie massive (ex: 256 bits).'
   },
   {
     n: 12, id: 'js_attack',
@@ -129,6 +159,9 @@ export const WEB_LEVELS = [
     owasp: 'A05:2021 — Security Misconfiguration',
     url: 'http://localhost:8080/vulnerabilities/javascript/',
     intro: 'Le serveur refuse la soumission si le token ne correspond pas. Inspecte le code JavaScript client pour comprendre comment le token est généré (MD5 de la chaîne inversée) et forge un token valide.',
+    vuln_desc: 'Toute logique de sécurité implémentée en JavaScript s\'exécute sur l\'ordinateur du client. Elle est donc visible et facilement contournable.',
+    principe: 'Le token de validation est calculé par le navigateur via un algorithme obscurci. L\'attaquant utilise les DevTools (F12) pour générer lui-même le token "magique".',
+    contre_mesure: 'Règle d\'or : Ne jamais faire confiance au client. Toutes les vérifications de droits et validations cryptographiques doivent s\'exécuter exclusivement sur le serveur backend.'
   },
   {
     n: 13, id: 'captcha',
@@ -136,6 +169,9 @@ export const WEB_LEVELS = [
     owasp: 'A04:2021 — Insecure Design',
     url: 'http://localhost:8080/vulnerabilities/captcha/',
     intro: 'Le serveur demande de valider un CAPTCHA pour modifier le mot de passe, mais la validation est imparfaite. Contourne cette protection en soumettant directement le bon paramètre caché.',
+    vuln_desc: 'Un CAPTCHA mal implémenté donne un faux sentiment de sécurité. S\'il n\'est pas vérifié côté serveur, les attaques automatisées peuvent l\'ignorer totalement.',
+    principe: 'L\'application valide l\'action dès qu\'elle reçoit le paramètre "passed_captcha=true" sans contacter le fournisseur d\'API (Google) pour vérifier la réalité de la résolution.',
+    contre_mesure: 'Le backend doit systématiquement interroger l\'API du fournisseur reCAPTCHA avec le jeton secret pour confirmer que le défi visuel a réellement été complété.'
   },
 ];
 
