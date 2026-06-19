@@ -73,137 +73,47 @@ Vue d'ensemble en 3 couches — joueur, application, IA.
 graph TB
     P(("🧑‍💻 Joueur"))
 
-    P -- "① flèches / déplacement" --> MAP
+    P -- "① déplacement (flèches)" --> MAP
     P -- "② démarrer le test d'intrusion" --> MAP
     P -- "③ commandes pentest" --> TERM
     P -- "④ question MENTOR" --> BOT
 
     subgraph UI ["🖥️  Frontend — React + Vite  :5173"]
         direction LR
-        MAP["🗺️ Carte interactive\nse déplacer · entrer\ndans une room"]
-        TERM["⌨️ Terminal\npentest (par room)"]
-        BOT["🎓 MENTOR\nAssistant"]
-        VFS["📁 VFS local\nls · cd · pwd\n(0 appel API)"]
+        MAP["🗺️ Carte interactive\nse déplacer · entrer dans une room"]
+        TERM["⌨️ Terminal pentest\n(par room)"]
+        BOT["🎓 Assistant MENTOR"]
+        VFS["📁 VFS local\nls · cd · pwd — 0 appel API"]
         MAP --> TERM
-        TERM --> VFS
+        TERM -- "commande simple" --> VFS
     end
 
-    UI -- "REST · JWT" --> API
+    TERM -- "commande complexe · REST + JWT" --> AUTH
+    BOT -- "REST + JWT" --> AUTH
 
-    subgraph API ["⚙️  Backend — Express  :3001"]
-        direction LR
-        SRV["server.js\n/api/linux-sim\n/api/ad-sim\n/api/assistant\n/api/auth"]
-        DB[("🗃️ SQLite\ngame state")]
-        SRV --- DB
+    subgraph API ["⚙️  Backend — Node.js + Express  :3001"]
+        direction TB
+        AUTH["🔐 Auth JWT (middleware)"]
+        ROUTES["server.js\n/api/auth · /api/linux-sim\n/api/ad-sim · /api/assistant"]
+        SIM["🧠 Simulateurs IA\nlinuxSim · adSim · assistant"]
+        DB[("🗃️ SQLite\ncomptes · progression")]
+        AUTH --> ROUTES
+        ROUTES --> SIM
+        ROUTES --> DB
     end
 
-    API -- "OpenAI-compat." --> LLM
+    SIM -- "client LLM (OpenAI-compat.)" --> LLM
 
     subgraph LLM ["🤖  LLM — Rotation automatique"]
         direction LR
-        G1["Gemini\nclé 1"]
-        G2["Gemini\nclé 2"]
-        G3["Gemini\nclé 3"]
-        G4["Gemini\nclé 4"]
+        G["Gemini\nclés 1 → 5"]
         GR["Groq\n(secours final)"]
-        G1 -- "429 →" --> G2 -- "429 →" --> G3 -- "429 →" --> G4 -- "429 →" --> GR
+        G -- "429 → clé suivante, puis Groq" --> GR
     end
 
     style UI fill:#001a0a,stroke:#00ff88,color:#00ff88
     style API fill:#00001a,stroke:#4488ff,color:#88aaff
     style LLM fill:#1a0020,stroke:#cc44ff,color:#dd88ff
-```
-
----
-
-## Architecture détaillée
-
-Tous les composants, routes et flux de données.
-
-```mermaid
-graph TB
-    subgraph FE ["🖥️  Frontend — React + Vite  :5173"]
-        direction TB
-
-        APP["App.jsx\nMachine à états · JWT\nselect › intro › game › fin\nbuildAssistantContext()"]
-
-        subgraph SCREENS ["Écrans"]
-            CS["CharacterSelect\nGHOST / PHANTOM / VIPER"]
-            IS["IntroScreen\nbriefing cinématique"]
-            GO["GameOver · Victory"]
-        end
-
-        subgraph GAME ["Jeu principal"]
-            GM["GameMap\nCanvas 2D 960×672\ntilemap · GHOST lerp\nbâtiments · câbles"]
-            TRM["LevelTerminal\nhistorique · prompt\ncouleurs ANSI"]
-            HUD["HUD\ntimer · XP · progression"]
-            BOT["AssistantBot 🎓\nMENTOR flottant\nsuggestions · historique"]
-        end
-
-        subgraph ROOMS ["Vues de salle"]
-            WEB["WebLevelView\n6 niveaux DVWA"]
-            ADV["ADLevelView\n6 étapes AD\nprompt: kali›shell›root›mysql›winrm"]
-            LNX["LinuxLevelView\n8 niveaux Linux"]
-            PIL["PILevelView\nPrompt Injection"]
-        end
-
-        subgraph UTILS ["Utilitaires"]
-            VFS["linuxSimulator.js\nVFS local — runLocal()\nls·cd·pwd·mkdir·rm·touch\n0 appel API"]
-            ADS["adSimulator.js\nAD_VFS kali/shell/root\nhandleADCommand()"]
-        end
-
-        subgraph LEVELS ["Définitions niveaux"]
-            WL["webLevels.js"]
-            AL["adLevels.js\nhandleADTerm()\n chaîne scriptée"]
-            LL["linuxLevels.js"]
-            PL["piLevels.js"]
-        end
-
-        MAP["map.js\nNETWORK_MAP 20×14\nGHOST_SPAWN\nmachines · positions"]
-    end
-
-    subgraph BE ["⚙️  Backend — Node.js + Express  :3001"]
-        direction TB
-
-        SRV["server.js\nJWT auth middleware\nPOST /api/auth/register\nPOST /api/auth/login\nPOST /api/command\nPOST /api/linux-sim\nPOST /api/ad-sim\nPOST /api/assistant\nGET  /api/state"]
-
-        DB[("SQLite\ncyberquest.db\nusers · game_state\nlevel_progress")]
-
-        subgraph LLM_LAYER ["LLM Layer"]
-            CLIENT["client.js\nRotation 4 clés Gemini\nFallback Groq\nfallbackOnEmpty"]
-            LSIM["linuxSim.js\nSimulateur Debian\nsystem prompt pédago"]
-            ADSIM["adSim.js\nSimulateur corp.local\nCVE-2021-41773\nkali/shell/root/mysql/winrm"]
-            ASST["assistant.js\nMENTOR context-aware\nbuildAssistantContext\nhistorique conversation"]
-            CE["challenges.js\ncommandes pentest\nflags · scoring"]
-        end
-
-        SRV --> DB
-        SRV --> CLIENT
-        CLIENT --> LSIM & ADSIM & ASST & CE
-    end
-
-    subgraph APIS ["🤖  LLM APIs"]
-        GEM["Google Gemini\ngemini-2.5-flash\nclés 1-4 (rotation)"]
-        GROQ["Groq\nllama-3.3-70b\n(secours final)"]
-    end
-
-    APP --> SCREENS & GAME & ROOMS
-    APP --> MAP
-    ROOMS --> LEVELS
-    LEVELS --> UTILS
-    UTILS -->|"commandes simples\n(0 API)"| ROOMS
-    UTILS -->|"commandes complexes"| SRV
-    BOT -->|"POST /api/assistant + JWT"| SRV
-    TRM -->|"POST /api/command\nPOST /api/linux-sim\nPOST /api/ad-sim + JWT"| SRV
-    CLIENT -->|"primaire (quota 429 → clé suivante)"| GEM
-    CLIENT -->|"secours toutes clés épuisées"| GROQ
-
-    style FE fill:#001208,stroke:#00cc66,color:#00ff88
-    style BE fill:#000818,stroke:#2255cc,color:#6699ff
-    style APIS fill:#180020,stroke:#9933cc,color:#cc88ff
-    style LLM_LAYER fill:#000a20,stroke:#1a3a6a,color:#4488aa
-    style UTILS fill:#001a06,stroke:#006633,color:#00aa44
-    style LEVELS fill:#001a06,stroke:#006633,color:#00aa44
 ```
 
 ---
@@ -221,7 +131,7 @@ sequenceDiagram
     participant DB  as SQLite
     participant LLM as LLM Client
 
-    note over LLM: Gemini clé1→2→3→4 → Groq
+    note over LLM: Gemini clés 1→5 → Groq
 
     P->>FE: Register / Login
     FE->>BE: POST /api/auth/login
@@ -297,7 +207,7 @@ sequenceDiagram
 CyberquestProject/
 ├── backend/
 │   ├── llm/
-│   │   ├── client.js          # Client LLM unifié — rotation 4 clés Gemini + Groq fallback
+│   │   ├── client.js          # Client LLM unifié — rotation 5 clés Gemini + Groq fallback
 │   │   ├── linuxSim.js        # Simulateur terminal Linux pédagogique
 │   │   ├── adSim.js           # Simulateur pentest AD (corp.local, CVE-2021-41773)
 │   │   ├── assistant.js       # MENTOR — réponses contextuelles room/niveau
@@ -350,12 +260,12 @@ Commande reçue
     │
     └─ Commande complexe (nmap, cat, crackmapexec…)
             │
-            ├─ Gemini clé 1  ──429──▶  Gemini clé 2  ──429──▶  Gemini clé 3  ──429──▶  Gemini clé 4
-            │                                                                                  │
-            └──────────────────────────────── 429 ────────────────────────────────────▶  Groq (fallback)
+            ├─ Gemini clé 1 ─429▶ clé 2 ─429▶ clé 3 ─429▶ clé 4 ─429▶ clé 5
+            │                                                            │
+            └──────────────────────── 429 ──────────────────────▶  Groq (fallback)
 ```
 
-Chaque clé Gemini offre **10 req/min · 500 req/jour** → capacité totale : **40 req/min · 2 000 req/jour**.
+Chaque clé Gemini offre **10 req/min · 500 req/jour** → capacité totale : **50 req/min · 2 500 req/jour**.
 
 ---
 
