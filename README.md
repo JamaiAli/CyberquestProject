@@ -73,15 +73,18 @@ Vue d'ensemble en 3 couches — joueur, application, IA.
 graph TB
     P(("🧑‍💻 Joueur"))
 
-    P -- "flèches / clavier" --> UI
-    P -- "question MENTOR" --> UI
+    P -- "① flèches / déplacement" --> MAP
+    P -- "② démarrer le test d'intrusion" --> MAP
+    P -- "③ commandes pentest" --> TERM
+    P -- "④ question MENTOR" --> BOT
 
     subgraph UI ["🖥️  Frontend — React + Vite  :5173"]
         direction LR
-        MAP["🗺️ Carte\ninteractive"]
-        TERM["⌨️ Terminal\npentest"]
+        MAP["🗺️ Carte interactive\nse déplacer · entrer\ndans une room"]
+        TERM["⌨️ Terminal\npentest (par room)"]
         BOT["🎓 MENTOR\nAssistant"]
         VFS["📁 VFS local\nls · cd · pwd\n(0 appel API)"]
+        MAP --> TERM
         TERM --> VFS
     end
 
